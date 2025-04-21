@@ -1,12 +1,24 @@
+# Python
 __pycache__/
-*.pyc
-.DS_Store
-/logs/
-/output/
-/models/
-/venv/
-*.log
+*.py[cod]
 *.egg-info/
 dist/
 build/
-misc.xml
+*.pyc
+.DS_Store
+
+# JetBrains
+.idea/
+!*.iml
+.idea/modules.xml
+.idea/codeStyles/
+.idea/inspectionProfiles/
+
+# Logs & Outputs
+logs/
+output/
+*.log
+
+# Models & Data (if not versioned intentionally)
+models/*
+data/*
