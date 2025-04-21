@@ -1,0 +1,110 @@
+/* ====== GLOBAL WIDGETS ====== */
+QWidget {
+    font-family: Arial;
+    font-size: 12px;
+    color: white;
+    background-color: #1e1e1e;
+}
+
+QLabel {
+    font-size: 13px;
+}
+
+
+/* ====== PUSH BUTTONS ====== */
+QPushButton {
+    background-color: #444;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #666;
+}
+
+QPushButton:hover {
+    background-color: #555;
+    border-color: #aaa;
+}
+
+/* Disabled buttons */
+QPushButton:disabled {
+    background-color: #2b2b2b;
+    color: #777;
+    border: 1px solid #444;
+}
+
+QPushButton:disabled:hover {
+    background-color: #333;
+    color: #888;
+}
+
+
+/* ====== LIST WIDGETS ====== */
+QListWidget {
+    background-color: #1c1c1c;
+    color: white;
+    border: 1px solid #555;
+    padding: 4px;
+}
+
+QListWidget::item {
+    padding: 4px;
+}
+
+
+/* ====== PROGRESS BAR ====== */
+QProgressBar {
+    border: 1px solid #555;
+    background: #2c2c2c;
+    height: 15px;
+    text-align: center;
+    color: white;
+}
+
+QProgressBar::chunk {
+    background-color: #00aa00;
+}
+
+/* ====== CUSTOM BUTTON STYLES ====== */
+
+QPushButton#PrimaryButton {
+    background-color: #0066cc;
+    color: white;
+    border: 1px solid #3399ff;
+}
+
+QPushButton#PrimaryButton:hover {
+    background-color: #007fff;
+    border: 1px solid #66b3ff;
+}
+
+QPushButton#PrimaryButton:disabled {
+    background-color: #3a3a3a;
+    color: #aaa;
+    border: 1px solid #444;
+}
+
+QPushButton#DangerButton {
+    background-color: #cc0000;
+    color: white;
+    border: 1px solid #ff4444;
+}
+
+QPushButton#DangerButton:hover {
+    background-color: #e60000;
+    border: 1px solid #ff6666;
+}
+
+QPushButton#DangerButton:disabled {
+    background-color: #3a3a3a;
+    color: #aaa;
+    border: 1px solid #444;
+}
+
+/* ====== STATUS BAR ====== */
+QStatusBar {
+    background-color: #2a2a2a;
+    color: #ccc;
+    border-top: 1px solid #444;
+    padding: 4px 10px;
+    font-size: 12px;
+}

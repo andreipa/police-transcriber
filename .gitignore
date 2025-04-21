@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.DS_Store
+/logs/
+/output/
+/models/
+/venv/
+*.log
+*.egg-info/
+dist/
+build/
+misc.xml
