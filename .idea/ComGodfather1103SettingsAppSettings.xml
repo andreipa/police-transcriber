@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="com.godfather1103.settings.AppSettings">
+    <option name="jiraJql" value="" />
+    <option name="jiraPassword" value="" />
+    <option name="jiraServer" value="" />
+    <option name="jiraUserName" value="" />
+    <option name="path" value="" />
+    <option name="selectedMode" value="1" />
+    <option name="templateProject" value="false" />
+    <option name="useSystemConfig" value="false" />
+  </component>
+</project>
