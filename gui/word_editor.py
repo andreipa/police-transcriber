@@ -1,10 +1,15 @@
+#  Copyright (c) 2025. TechDev Andrade Ltda.
+#  All rights reserved.
+#  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
+
+import os
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QListWidget, QPushButton,
     QHBoxLayout, QInputDialog, QMessageBox, QSpacerItem, QSizePolicy
 )
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt
-import os
 
 SENSITIVE_WORDS_FILE = os.path.join("data", "sensible_words.txt")
 
@@ -33,13 +38,11 @@ class WordEditorDialog(QDialog):
         self.add_button = QPushButton(" Adicionar")
         self.add_button.setToolTip("Adicionar uma nova palavra à lista")
         self.add_button.setIcon(QIcon("assets/icons/add.png"))
-        self.add_button.setObjectName("PrimaryButton")
         self.add_button.clicked.connect(self.add_word)
 
         self.edit_button = QPushButton(" Editar")
         self.edit_button.setToolTip("Editar a palavra selecionada na lista")
         self.edit_button.setIcon(QIcon("assets/icons/edit.png"))
-        self.edit_button.setObjectName("PrimaryButton")
         self.edit_button.clicked.connect(self.edit_word)
 
         self.remove_button = QPushButton(" Remover")
@@ -65,14 +68,12 @@ class WordEditorDialog(QDialog):
         self.save_btn = QPushButton("  Salvar Alterações")
         self.save_btn.setToolTip("Salvar todas as alterações feitas na lista")
         self.save_btn.setIcon(QIcon("assets/icons/save.png"))
-        self.save_btn.setObjectName("PrimaryButton")
         self.save_btn.setCursor(Qt.PointingHandCursor)
         self.save_btn.clicked.connect(self.save_words)
 
         self.cancel_btn = QPushButton("  Cancelar")
         self.cancel_btn.setToolTip("Cancelar e fechar sem salvar")
         self.cancel_btn.setIcon(QIcon("assets/icons/cancel.png"))
-        self.cancel_btn.setObjectName("DangerButton")
         self.cancel_btn.setCursor(Qt.PointingHandCursor)
         self.cancel_btn.clicked.connect(self.reject)
 
