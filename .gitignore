@@ -22,3 +22,4 @@ output/
 # Models & Data (if not versioned intentionally)
 models/*
 data/*
+logs/*

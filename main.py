@@ -1,13 +1,17 @@
-# main.py
+#  Copyright (c) 2025. TechDev Andrade Ltda.
+#  All rights reserved.
+#  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
 
-import sys
-import os
 import logging
-from PyQt5.QtWidgets import QApplication
+import os
+import sys
+
 from PyQt5.QtCore import QTimer
-from gui.splash import SplashScreen
-from gui.main_window import MainWindow
+from PyQt5.QtWidgets import QApplication
+
 from config import SUPPRESS_QT_WARNINGS
+from gui.main_window import MainWindow
+from gui.splash import SplashScreen
 
 # NEW: Suppress macOS native stderr output (e.g., NSOpenPanel warning)
 if SUPPRESS_QT_WARNINGS:
