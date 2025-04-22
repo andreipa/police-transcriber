@@ -10,6 +10,7 @@ from unittest.mock import patch, mock_open, MagicMock
 from core.transcriber import load_sensitive_words, format_time, transcribe_audio
 
 
+# TODO: Add docstrings to the test cases and methods
 class TestTranscriber(unittest.TestCase):
     def setUp(self):
         # Suppress logging to stderr during tests
