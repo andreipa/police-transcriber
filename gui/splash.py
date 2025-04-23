@@ -1,24 +1,22 @@
-# gui/splash.py
+#  Copyright (c) 2025. TechDev Andrade Ltda.
+#  All rights reserved.
+#  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
 
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout
-from PyQt5.QtGui import QPixmap, QFont
-from PyQt5.QtCore import Qt
 import os
 
-from config import APP_NAME, VERSION, SLOGAN_EN
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
+
+from config import APP_NAME, SLOGAN_EN, VERSION
+
 
 class SplashScreen(QWidget):
-    def __init__(self):
+    """A frameless splash screen displaying the application logo, name, slogan, and version."""
+
+    def __init__(self) -> None:
+        """Initialize the splash screen with centered logo, labels, and custom styling."""
         super().__init__()
-
-        splash_path = os.path.join("assets","images","splash.png")
-        pixmap = QPixmap(splash_path)
-        max_logo_width = 550  # or tweak this value if needed
-        scaled_pixmap = pixmap.scaledToWidth(max_logo_width, Qt.SmoothTransformation)
-
-        logo = QLabel()
-        logo.setPixmap(scaled_pixmap)
-        logo.setAlignment(Qt.AlignCenter)
 
         self.setWindowTitle(APP_NAME)
         self.setFixedSize(550, 450)
@@ -28,30 +26,31 @@ class SplashScreen(QWidget):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
 
-        # Load splash image
-        splash_path = os.path.join("assets", "images","splash.png")
+        # Load and scale the splash image
+        splash_path = os.path.join("assets", "images", "splash.png")
         pixmap = QPixmap(splash_path)
+        scaled_pixmap = pixmap.scaledToWidth(300, Qt.SmoothTransformation)
         logo = QLabel()
-        logo.setPixmap(pixmap)
+        logo.setPixmap(scaled_pixmap)
         logo.setAlignment(Qt.AlignCenter)
 
-        # App name
+        # Create application name label
         app_name_label = QLabel(APP_NAME)
         app_name_label.setFont(QFont("Arial", 25, QFont.Bold))
         app_name_label.setAlignment(Qt.AlignCenter)
 
-        # Slogan
+        # Create slogan label
         slogan_label = QLabel(SLOGAN_EN)
         slogan_label.setFont(QFont("Arial", 15))
         slogan_label.setAlignment(Qt.AlignCenter)
 
-        # Version at the bottom
+        # Create version label
         version_label = QLabel(VERSION)
         version_label.setFont(QFont("Arial", 10))
         version_label.setStyleSheet("color: gray;")
         version_label.setAlignment(Qt.AlignCenter)
 
-        # Add all to layout
+        # Add widgets to layout
         layout.addWidget(logo)
         layout.addWidget(app_name_label)
         layout.addWidget(slogan_label)
