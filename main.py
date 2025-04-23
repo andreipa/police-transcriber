@@ -9,44 +9,28 @@ import sys
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 
-from config import SUPPRESS_QT_WARNINGS
 from gui.main_window import MainWindow
 from gui.splash import SplashScreen
 
-# NEW: Suppress macOS native stderr output (e.g., NSOpenPanel warning)
-if SUPPRESS_QT_WARNINGS:
-    sys.stderr = open(os.devnull, 'w')  # <- This hides Cocoa (macOS) errors too
 
-    import warnings
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import ctypes
-    try:
-        ctypes.CDLL(None).objc_getClass(b"NSWindow")
-    except Exception:
-        pass
+def configure_logging():
+    """Configure logging to capture warnings and errors in a log file."""
+    os.makedirs("logs", exist_ok=True)
+    logging.basicConfig(
+        filename="logs/app.log",
+        level=logging.WARNING,
+        format="%(asctime)s [%(levelname)s] %(message)s"
+    )
 
-# Setup logging for warnings and errors
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(
-    filename="logs/app.log",
-    level=logging.WARNING,  # Logs WARNING and ERROR
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
+def load_stylesheet(app: QApplication) -> None:
+    """Load and apply the global stylesheet to the application."""
+    with open("assets/styles/styles.qss", "r") as f:
+        style = f.read()
+        app.setStyleSheet(style)
 
-app = QApplication(sys.argv)
-# Load global stylesheet
-with open("assets/styles/styles.qss", "r") as f:
-    style = f.read()
-    app.setStyleSheet(style)
 
-# Show splash screen
-splash = SplashScreen()
-splash.show()
-
-# Main window instance declared globally to prevent garbage collection
-main_window = None
-
-def show_main_window():
+def show_main_window(splash: SplashScreen) -> None:
+    """Initialize and display the main application window, closing the splash screen."""
     global main_window
     try:
         splash.close()
@@ -55,11 +39,25 @@ def show_main_window():
     except Exception as e:
         logging.error("Error initializing main window", exc_info=True)
 
-# Delay showing the main window for 2.5 seconds
-QTimer.singleShot(2500, show_main_window)
 
-# Run the main application loop
-try:
-    sys.exit(app.exec_())
-except Exception as e:
-    logging.error("Unhandled exception in application loop", exc_info=True)
+def main():
+    """Initialize the application, display the splash screen, and start the main event loop."""
+    configure_logging()
+
+    app = QApplication(sys.argv)
+    load_stylesheet(app)
+
+    splash = SplashScreen()
+    splash.show()
+
+    # Schedule the main window to appear after a 2.5-second delay
+    QTimer.singleShot(2500, lambda: show_main_window(splash))
+
+    try:
+        sys.exit(app.exec_())
+    except Exception as e:
+        logging.error("Unhandled exception in application loop", exc_info=True)
+
+
+if __name__ == "__main__":
+    main()
