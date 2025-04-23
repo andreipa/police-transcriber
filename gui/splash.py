@@ -29,7 +29,7 @@ class SplashScreen(QWidget):
         # Load and scale the splash image
         splash_path = os.path.join("assets", "images", "splash.png")
         pixmap = QPixmap(splash_path)
-        scaled_pixmap = pixmap.scaledToWidth(550, Qt.SmoothTransformation)
+        scaled_pixmap = pixmap.scaledToWidth(300, Qt.SmoothTransformation)
         logo = QLabel()
         logo.setPixmap(scaled_pixmap)
         logo.setAlignment(Qt.AlignCenter)

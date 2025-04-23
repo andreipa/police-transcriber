@@ -78,10 +78,9 @@ def transcribe_audio(
             on_update_message("Carregando modelo...")
 
         model = WhisperModel(
-            model_path=LOCAL_MODEL_PATH,
+            model_size_or_path=LOCAL_MODEL_PATH,
             device="cpu",
-            compute_type="int8",
-            local_files_only=True
+            compute_type="int8"
         )
         segments, info = model.transcribe(file_path, beam_size=5, word_timestamps=False)
         total_duration = info.duration if info else 1.0

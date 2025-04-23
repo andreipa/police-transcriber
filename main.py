@@ -2,16 +2,13 @@
 #  All rights reserved.
 #  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
 
-import ctypes
 import logging
 import os
 import sys
-import warnings
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 
-from config import SUPPRESS_QT_WARNINGS
 from gui.main_window import MainWindow
 from gui.splash import SplashScreen
 
@@ -24,18 +21,6 @@ def configure_logging():
         level=logging.WARNING,
         format="%(asctime)s [%(levelname)s] %(message)s"
     )
-
-
-def suppress_system_warnings():
-    """Suppress system-specific warnings for a cleaner application runtime."""
-    if SUPPRESS_QT_WARNINGS:
-        sys.stderr = open(os.devnull, 'w')
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        try:
-            ctypes.CDLL(None).objc_getClass(b"NSWindow")
-        except Exception:
-            pass
-
 
 def load_stylesheet(app: QApplication) -> None:
     """Load and apply the global stylesheet to the application."""
@@ -58,7 +43,6 @@ def show_main_window(splash: SplashScreen) -> None:
 def main():
     """Initialize the application, display the splash screen, and start the main event loop."""
     configure_logging()
-    suppress_system_warnings()
 
     app = QApplication(sys.argv)
     load_stylesheet(app)

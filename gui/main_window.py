@@ -19,7 +19,6 @@ from PyQt5.QtWidgets import (
 )
 
 from config import APP_NAME, OUTPUT_FOLDER, VERSION
-from core.model_updater import check_for_model_update
 from core.transcriber import transcribe_audio
 from gui.word_editor import WordEditorDialog
 
@@ -148,9 +147,6 @@ class MainWindow(QWidget):
         edit_words_action = QAction(QIcon("assets/icons/edit.png"), "Editar Palavras Sensíveis", self)
         edit_words_action.triggered.connect(self.open_word_editor)
         tools_menu.addAction(edit_words_action)
-        check_model_action = QAction(QIcon("assets/icons/update.png"), "Verificar Atualização do Modelo", self)
-        check_model_action.triggered.connect(self.check_model_update)
-        tools_menu.addAction(check_model_action)
         check_app_action = QAction(QIcon("assets/icons/refresh.png"), "Verificar Atualização do Programa", self)
         check_app_action.triggered.connect(self.check_app_update)
         tools_menu.addAction(check_app_action)
@@ -382,7 +378,8 @@ class MainWindow(QWidget):
         self.status_bar.showMessage("Transcrição concluída com sucesso")
         self.current_file_label.setText("Arquivo atual: Nenhum")
         self.current_file = None
-        self.show_summary_panel(file_paths)
+        if file_paths and isinstance(file_paths, str) and os.path.exists(file_paths):
+            self.show_summary_panel(file_paths)
         QMessageBox.information(self, "Sucesso", message)
 
     def transcription_failed(self, file_path: str) -> None:
@@ -398,58 +395,6 @@ class MainWindow(QWidget):
         self.current_file_label.setText("Arquivo atual: Nenhum")
         self.current_file = None
         QMessageBox.critical(self, "Erro", f"Erro ao transcrever o arquivo: {file_path}")
-
-    def check_model_update(self) -> None:
-        """Check for updates to the transcription model and download if available."""
-        self.select_file_button.setEnabled(False)
-        self.select_file_button.setText("Verificando...")
-
-        class ModelUpdateThread(QThread):
-            """A thread for checking and downloading model updates."""
-
-            update_progress = pyqtSignal(int)
-            """Signal emitted to report download progress as a percentage."""
-
-            update_finished = pyqtSignal(bool)
-            """Signal emitted when the update check completes, with success status."""
-
-            def run(self) -> None:
-                """Check for model updates and emit progress and completion signals."""
-                try:
-                    updated = check_for_model_update(self.update_progress.emit)
-                    self.update_finished.emit(updated)
-                except Exception as e:
-                    logging.error(f"Failed to check for model update: {e}")
-                    self.update_finished.emit(False)
-
-        def on_progress(value: int) -> None:
-            """Update the progress bar with the download progress.
-
-            Args:
-                value: The progress percentage.
-            """
-            self.progress.setValue(value)
-
-        def on_finished(updated: bool) -> None:
-            """Handle the completion of the model update check.
-
-            Args:
-                updated: True if the model was updated, False otherwise.
-            """
-            self.select_file_button.setEnabled(True)
-            self.select_file_button.setText("Selecionar Arquivo")
-            self.progress.setValue(0)
-            if updated:
-                self.status_bar.showMessage("Modelo atualizado com sucesso")
-                QMessageBox.information(self, "Modelo Atualizado", "Um novo modelo foi baixado com sucesso")
-            else:
-                self.status_bar.showMessage("Nenhuma atualização encontrada")
-                QMessageBox.information(self, "Sem Atualizações", "Nenhuma atualização disponível no momento")
-
-        self.thread = ModelUpdateThread()
-        self.thread.update_progress.connect(on_progress)
-        self.thread.update_finished.connect(on_finished)
-        self.thread.start()
 
     def check_app_update(self) -> None:
         """Check for application updates on GitHub and prompt the user if available."""
@@ -495,6 +440,10 @@ class MainWindow(QWidget):
                 "Atualização",
                 "Não foi possível verificar atualizações no momento. Tente novamente mais tarde"
             )
+
+    def open_help_link(self) -> None:
+        """Open the application's online help page in the default web browser."""
+        QDesktopServices.openUrl(QUrl("https://github.com/andreipa/police-transcriber"))
 
     def show_about(self) -> None:
         """Display an About dialog with the application logo, name, and version."""
