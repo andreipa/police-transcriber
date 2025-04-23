@@ -12,7 +12,6 @@
 - 🔍 Detect and log sensitive keywords
 - ⏱️ Real-time progress and timestamp tracking
 - 📂 Supports individual files and folders
-- ✅ Model auto-update checker
 - 💾 Offline-first: No internet connection required
 - 🧠 Powered by [Faster-Whisper](https://github.com/guillaumekln/faster-whisper)
 
@@ -46,12 +45,12 @@ source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
 ```
 
-4. Download the Whisper model manually or let the app do it via **"Check for Model Update"**.
+4. Download the Whisper large-v3 model manually.
 
 Place it in:
 
 ```
-models/base/model.bin
+models/large-v3/model.bin
 ```
 
 ---
@@ -81,13 +80,6 @@ python main.py
 ├── main.py
 └── README.md
 ```
-
----
-
-## 🛠️ Model Update Host
-
-The Whisper model is hosted here:  
-👉 [Model Download (base)](https://github.com/your-username/police-transcriber/releases/latest/download/model.bin)
 
 ---
 
