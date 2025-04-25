@@ -17,8 +17,9 @@ from PyQt5.QtWidgets import (
     QListWidget, QMenu, QMenuBar, QMessageBox, QProgressBar, QPushButton,
     QStatusBar, QVBoxLayout, QWidget
 )
+from packaging import version
 
-from config import APP_NAME, OUTPUT_FOLDER, VERSION
+from config import APP_NAME, GITHUB_RELEASES_URL, OUTPUT_FOLDER, VERSION
 from core.transcriber import transcribe_audio
 from gui.word_editor import WordEditorDialog
 
@@ -51,11 +52,7 @@ class TranscriptionThread(QThread):
         self.files = files
 
     def run(self) -> None:
-        """Execute the transcription process for all files in the queue.
-
-        Processes each file sequentially, emitting progress and current file signals.
-        Handles cancellation and errors, emitting appropriate signals on completion or failure.
-        """
+        """Execute the transcription process for all files in the queue."""
         try:
             total_files = len(self.files)
             logging.info(f"Starting transcription for {total_files} files")
@@ -100,22 +97,11 @@ class BackgroundAppUpdateChecker(QThread):
     def run(self) -> None:
         """Check for the latest application release on GitHub and emit update signal if available."""
         try:
-            response = requests.get(
-                "https://api.github.com/repos/andreipa/police-transcriber/releases/latest",
-                headers={"Accept": "application/vnd.github.v3+json"},
-                timeout=5
-            )
-            if response.status_code != 200:
-                logging.warning(f"Failed to check for updates: HTTP {response.status_code}")
-                return
-
-            data = response.json()
-            latest_version = data.get("tag_name", "").lstrip("v")
-            if latest_version and latest_version != VERSION:
-                logging.info(f"New version available: {latest_version}")
-                self.update_available.emit(latest_version)
+            # Temporarily disabled due to repository inaccessibility
+            logging.info("Application update check disabled")
+            return
         except requests.RequestException as e:
-            logging.warning(f"Failed to check for updates: {e}")
+            logging.warning(f"Failed to check for application updates: {e}")
 
 class MainWindow(QWidget):
     """Main application window for managing audio file transcription and sensitive word detection."""
@@ -123,120 +109,130 @@ class MainWindow(QWidget):
     def __init__(self) -> None:
         """Initialize the main window with UI components and transcription controls."""
         super().__init__()
-        self.setWindowTitle("Police Transcriber")
-        self.setFixedSize(600, 520)
+        logging.debug("Initializing MainWindow")
+        try:
+            self.setWindowTitle("Police Transcriber")
+            self.setFixedSize(600, 520)
 
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
+            layout = QVBoxLayout()
+            layout.setAlignment(Qt.AlignTop)
 
-        # Initialize menu bar
-        menu_bar = QMenuBar(self)
-        file_menu = menu_bar.addMenu("Arquivo")
-        open_file_action = QAction(QIcon("assets/icons/file.png"), "Selecionar Arquivo", self)
-        open_file_action.triggered.connect(self.select_file)
-        file_menu.addAction(open_file_action)
-        open_folder_action = QAction(QIcon("assets/icons/folder.png"), "Selecionar Pasta", self)
-        open_folder_action.triggered.connect(self.select_folder)
-        file_menu.addAction(open_folder_action)
-        file_menu.addSeparator()
-        exit_action = QAction(QIcon("assets/icons/exit.png"), "Sair", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
+            # Initialize menu bar
+            menu_bar = QMenuBar(self)
+            file_menu = menu_bar.addMenu("Arquivo")
+            open_file_action = QAction(QIcon("assets/icons/file.png"), "Selecionar Arquivo", self)
+            open_file_action.triggered.connect(self.select_file)
+            file_menu.addAction(open_file_action)
+            open_folder_action = QAction(QIcon("assets/icons/folder.png"), "Selecionar Pasta", self)
+            open_folder_action.triggered.connect(self.select_folder)
+            file_menu.addAction(open_folder_action)
+            file_menu.addSeparator()
+            exit_action = QAction(QIcon("assets/icons/exit.png"), "Sair", self)
+            exit_action.triggered.connect(self.close)
+            file_menu.addAction(exit_action)
 
-        tools_menu = menu_bar.addMenu("Ferramentas")
-        edit_words_action = QAction(QIcon("assets/icons/edit.png"), "Editar Palavras Sensíveis", self)
-        edit_words_action.triggered.connect(self.open_word_editor)
-        tools_menu.addAction(edit_words_action)
-        check_app_action = QAction(QIcon("assets/icons/refresh.png"), "Verificar Atualização do Programa", self)
-        check_app_action.triggered.connect(self.check_app_update)
-        tools_menu.addAction(check_app_action)
+            tools_menu = menu_bar.addMenu("Ferramentas")
+            edit_words_action = QAction(QIcon("assets/icons/edit.png"), "Editar Palavras Sensíveis", self)
+            edit_words_action.triggered.connect(self.open_word_editor)
+            tools_menu.addAction(edit_words_action)
+            check_app_action = QAction(QIcon("assets/icons/refresh.png"), "Verificar Atualização do Programa", self)
+            check_app_action.triggered.connect(self.check_app_update)
+            tools_menu.addAction(check_app_action)
 
-        help_menu = menu_bar.addMenu("Ajuda")
-        help_action = QAction(QIcon("assets/icons/help.png"), "Ajuda Online...", self)
-        help_action.triggered.connect(self.open_help_link)
-        help_menu.addAction(help_action)
-        help_menu.addSeparator()
-        about_action = QAction(QIcon("assets/icons/about.png"), "Sobre", self)
-        about_action.triggered.connect(self.show_about)
-        help_menu.addAction(about_action)
+            help_menu = menu_bar.addMenu("Ajuda")
+            help_action = QAction(QIcon("assets/icons/help.png"), "Ajuda Online...", self)
+            help_action.triggered.connect(self.open_help_link)
+            help_menu.addAction(help_action)
+            help_menu.addSeparator()
+            about_action = QAction(QIcon("assets/icons/about.png"), "Sobre", self)
+            about_action.triggered.connect(self.show_about)
+            help_menu.addAction(about_action)
 
-        layout.setMenuBar(menu_bar)
+            layout.setMenuBar(menu_bar)
 
-        # Add instruction label
-        layout.addWidget(QLabel("Selecione um arquivo .mp3 ou uma pasta para transcrição:"))
+            # Add instruction label
+            layout.addWidget(QLabel("Selecione um arquivo .mp3 ou uma pasta para transcrição:"))
 
-        # Initialize file selection buttons
-        button_layout = QHBoxLayout()
-        self.select_file_button = QPushButton("Selecionar Arquivo")
-        self.select_file_button.setIcon(QIcon("assets/icons/file.png"))
-        self.select_file_button.clicked.connect(self.select_file)
-        button_layout.addWidget(self.select_file_button)
+            # Initialize file selection buttons
+            button_layout = QHBoxLayout()
+            self.select_file_button = QPushButton("Selecionar Arquivo")
+            self.select_file_button.setIcon(QIcon("assets/icons/file.png"))
+            self.select_file_button.clicked.connect(self.select_file)
+            button_layout.addWidget(self.select_file_button)
 
-        self.select_folder_button = QPushButton("Selecionar Pasta")
-        self.select_folder_button.setIcon(QIcon("assets/icons/folder.png"))
-        self.select_folder_button.clicked.connect(self.select_folder)
-        button_layout.addWidget(self.select_folder_button)
-        layout.addLayout(button_layout)
+            self.select_folder_button = QPushButton("Selecionar Pasta")
+            self.select_folder_button.setIcon(QIcon("assets/icons/folder.png"))
+            self.select_folder_button.clicked.connect(self.select_folder)
+            button_layout.addWidget(self.select_folder_button)
+            layout.addLayout(button_layout)
 
-        # Initialize file list with context menu
-        self.file_list = QListWidget()
-        self.file_list.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.file_list.customContextMenuRequested.connect(self.show_context_menu)
-        layout.addWidget(self.file_list)
+            # Initialize file list with context menu
+            self.file_list = QListWidget()
+            self.file_list.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.file_list.customContextMenuRequested.connect(self.show_context_menu)
+            layout.addWidget(self.file_list)
 
-        # Initialize current file label
-        self.current_file_label = QLabel("Arquivo atual: Nenhum")
-        self.current_file_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.current_file_label)
+            # Initialize current file label
+            self.current_file_label = QLabel("Arquivo atual: Nenhum")
+            self.current_file_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(self.current_file_label)
 
-        # Initialize transcription control buttons
-        transcribe_layout = QHBoxLayout()
-        self.transcribe_button = QPushButton("Iniciar Transcrição")
-        self.transcribe_button.setObjectName("PrimaryButton")
-        self.transcribe_button.setIcon(QIcon("assets/icons/start.png"))
-        self.transcribe_button.setEnabled(False)
-        self.transcribe_button.clicked.connect(self.start_transcription)
-        transcribe_layout.addWidget(self.transcribe_button)
+            # Initialize transcription control buttons
+            transcribe_layout = QHBoxLayout()
+            self.transcribe_button = QPushButton("Iniciar Transcrição")
+            self.transcribe_button.setObjectName("PrimaryButton")
+            self.transcribe_button.setIcon(QIcon("assets/icons/start.png"))
+            self.transcribe_button.setEnabled(False)
+            self.transcribe_button.clicked.connect(self.start_transcription)
+            transcribe_layout.addWidget(self.transcribe_button)
 
-        self.stop_button = QPushButton("Parar")
-        self.stop_button.setObjectName("DangerButton")
-        self.stop_button.setIcon(QIcon("assets/icons/stop.png"))
-        self.stop_button.setEnabled(False)
-        self.stop_button.clicked.connect(self.stop_transcription)
-        transcribe_layout.addWidget(self.stop_button)
-        layout.addLayout(transcribe_layout)
+            self.stop_button = QPushButton("Parar")
+            self.stop_button.setObjectName("DangerButton")
+            self.stop_button.setIcon(QIcon("assets/icons/stop.png"))
+            self.stop_button.setEnabled(False)
+            self.stop_button.clicked.connect(self.stop_transcription)
+            transcribe_layout.addWidget(self.stop_button)
+            layout.addLayout(transcribe_layout)
 
-        # Initialize progress bar
-        self.progress = QProgressBar()
-        self.progress.setValue(0)
-        layout.addWidget(self.progress)
+            # Initialize progress bar
+            self.progress = QProgressBar()
+            self.progress.setValue(0)
+            layout.addWidget(self.progress)
 
-        # Initialize elapsed time label
-        self.elapsed_label = QLabel("Duração: 00:00:00")
-        self.elapsed_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.elapsed_label)
+            # Initialize elapsed time label
+            self.elapsed_label = QLabel("Duração: 00:00:00")
+            self.elapsed_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(self.elapsed_label)
 
-        # Initialize status bar
-        self.status_bar = QStatusBar()
-        self.status_bar.showMessage("Modelo carregado: base | Última atualização: --")
-        layout.addWidget(self.status_bar)
+            # Initialize status bar
+            self.status_bar = QStatusBar()
+            self.status_bar.showMessage("Modelo carregado: large-v3 | Última atualização: --")
+            layout.addWidget(self.status_bar)
 
-        # Initialize background update checker
-        self.update_checker = BackgroundAppUpdateChecker()
-        self.update_checker.update_available.connect(self.notify_update_available)
-        self.update_checker.start()
+            # Initialize background update checker
+            self.update_checker = BackgroundAppUpdateChecker()
+            self.update_checker.update_available.connect(self.notify_update_available)
+            self.update_checker.start()
 
-        # Set main layout
-        self.setLayout(layout)
+            # Initialize timer and state variables
+            self.elapsed_timer = QTimer()
+            self.elapsed_timer.timeout.connect(self.update_elapsed_time)
+            self.elapsed_seconds = 0
+            self.thread = None
+            self.queued_files = []
+            self.current_file = None
+            self.processed_files = []
 
-        # Initialize timer and state variables
-        self.elapsed_timer = QTimer()
-        self.elapsed_timer.timeout.connect(self.update_elapsed_time)
-        self.elapsed_seconds = 0
-        self.thread = None
-        self.queued_files = []
-        self.current_file = None
-        self.processed_files = []
+            self.setLayout(layout)
+            logging.debug("MainWindow initialization completed")
+        except Exception as e:
+            logging.error(f"Failed to initialize MainWindow: {e}", exc_info=True)
+            raise
+
+    def closeEvent(self, event) -> None:
+        """Handle the window close event and log it."""
+        logging.debug("MainWindow closeEvent triggered")
+        event.accept()
 
     def notify_update_available(self, version: str) -> None:
         """Display a notification in the status bar when a new application version is available.
@@ -244,7 +240,7 @@ class MainWindow(QWidget):
         Args:
             version: The version string of the available update.
         """
-        self.status_bar.showMessage(f"Atualização disponível: v{version}")
+        self.status_bar.showMessage(f"🔔 Atualização disponível: v{version}")
 
     def select_file(self) -> None:
         """Open a file dialog to select an MP3 file and update the transcription queue."""
@@ -353,8 +349,8 @@ class MainWindow(QWidget):
         self.stop_button.setEnabled(False)
         self.transcribe_button.setEnabled(bool(self.queued_files))
         self.progress.setValue(0)
-        self.elapsed_label.setText("Transcrição cancelada.")
-        self.status_bar.showMessage("Transcrição cancelada.")
+        self.elapsed_label.setText("Transcrição cancelada")
+        self.status_bar.showMessage("Transcrição cancelada")
         self.current_file_label.setText("Arquivo atual: Nenhum")
         self.current_file = None
 
@@ -378,8 +374,7 @@ class MainWindow(QWidget):
         self.status_bar.showMessage("Transcrição concluída com sucesso")
         self.current_file_label.setText("Arquivo atual: Nenhum")
         self.current_file = None
-        if file_paths and isinstance(file_paths, str) and os.path.exists(file_paths):
-            self.show_summary_panel(file_paths)
+        self.show_summary_panel(file_paths)
         QMessageBox.information(self, "Sucesso", message)
 
     def transcription_failed(self, file_path: str) -> None:
@@ -400,13 +395,11 @@ class MainWindow(QWidget):
         """Check for application updates on GitHub and prompt the user if available."""
         try:
             response = requests.get(
-                "https://api.github.com/repos/andreipa/police-transcriber/releases/latest",
+                GITHUB_RELEASES_URL,
                 headers={"Accept": "application/vnd.github.v3+json"},
                 timeout=5
             )
-            if response.status_code != 200:
-                raise ValueError(f"Unexpected status code: {response.status_code}")
-
+            response.raise_for_status()
             latest_release = response.json()
             latest_version = latest_release.get("tag_name", "").lstrip("v")
 
@@ -418,7 +411,7 @@ class MainWindow(QWidget):
                 )
                 return
 
-            if latest_version != VERSION:
+            if version.parse(latest_version) > version.parse(VERSION):
                 reply = QMessageBox.question(
                     self,
                     "Atualização Disponível",
@@ -443,7 +436,7 @@ class MainWindow(QWidget):
 
     def open_help_link(self) -> None:
         """Open the application's online help page in the default web browser."""
-        QDesktopServices.openUrl(QUrl("https://github.com/andreipa/police-transcriber"))
+        QDesktopServices.openUrl(QUrl("https://github.com/{GITHUB_REPO}"))
 
     def show_about(self) -> None:
         """Display an About dialog with the application logo, name, and version."""
@@ -475,16 +468,12 @@ class MainWindow(QWidget):
         dialog.setLayout(layout)
         dialog.exec_()
 
-        def open_help_link(self) -> None:
-            """Open the application's online help page in the default web browser."""
-        QDesktopServices.openUrl(QUrl("https://github.com/andreipa/police-transcriber"))
+    def show_summary_panel(self, file_paths: list[str]) -> None:
+        """Display a dialog summarizing the transcription results for processed files.
 
-        def show_summary_panel(self, file_paths: list[str]) -> None:
-            """Display a dialog summarizing the transcription results for processed files.
-
-            Args:
-                file_paths: List of paths to the transcribed files.
-            """
+        Args:
+            file_paths: List of paths to the transcribed files.
+        """
         try:
             dialog = QDialog(self)
             dialog.setWindowTitle("Resumo da Transcrição")

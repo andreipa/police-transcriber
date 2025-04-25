@@ -8,13 +8,12 @@ from datetime import datetime
 
 from faster_whisper import WhisperModel
 
-from config import LOCAL_MODEL_PATH, SENSITIVE_WORDS_FILE, OUTPUT_FOLDER
+from config import LOCAL_MODEL_PATH, MODEL_FILES, SENSITIVE_WORDS_FILE, OUTPUT_FOLDER
 
 
 def ensure_output_directory() -> None:
     """Create the output directory if it does not exist."""
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
 
 def load_sensitive_words() -> set[str]:
     """Load sensitive words from a file into a set for efficient lookup.
@@ -29,7 +28,6 @@ def load_sensitive_words() -> set[str]:
         logging.error(f"Failed to load sensitive words: {e}")
         return set()
 
-
 def format_time(seconds: float) -> str:
     """Convert seconds to a formatted HH:MM:SS string.
 
@@ -42,7 +40,6 @@ def format_time(seconds: float) -> str:
     hours, remainder = divmod(int(seconds), 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-
 
 def transcribe_audio(
         file_path: str,
@@ -74,20 +71,44 @@ def transcribe_audio(
     output_file = os.path.join(OUTPUT_FOLDER, f"{name_no_ext}-{timestamp}.txt")
 
     try:
+        # Validate input file
+        if not os.path.exists(file_path):
+            logging.error(f"Input file does not exist: {file_path}")
+            if on_update_message:
+                on_update_message(f"Arquivo não encontrado: {file_path}")
+            return False
+        if not file_path.lower().endswith('.mp3'):
+            logging.error(f"Invalid file format, expected MP3: {file_path}")
+            if on_update_message:
+                on_update_message("Formato de arquivo inválido. Use MP3.")
+            return False
+
+        # Validate model files
+        for file_name in MODEL_FILES:
+            model_file_path = os.path.join(LOCAL_MODEL_PATH, file_name)
+            if not os.path.exists(model_file_path):
+                logging.error(f"Model file missing: {model_file_path}")
+                if on_update_message:
+                    on_update_message(f"Arquivo de modelo ausente: {model_file_path}")
+                return False
+
         if on_update_message:
             on_update_message("Carregando modelo...")
 
+        logging.debug(f"Loading WhisperModel from {LOCAL_MODEL_PATH}")
         model = WhisperModel(
             model_size_or_path=LOCAL_MODEL_PATH,
             device="cpu",
-            compute_type="int8"
+            compute_type="int8",
+            local_files_only=True
         )
+        logging.debug(f"Transcribing file: {file_path}")
         segments, info = model.transcribe(file_path, beam_size=5, word_timestamps=False)
         total_duration = info.duration if info else 1.0
 
         processed_seconds = 0
 
-        with open(output_file, "w", encoding="utf-8") as out:
+        with open(output_file, "w", encoding="utf-8") as file:
             for segment in segments:
                 if stop_flag and stop_flag():
                     logging.warning("Transcription stopped by user")
@@ -102,8 +123,8 @@ def transcribe_audio(
                 normalized_text = text.lower()
                 if any(word in normalized_text for word in sensitive_words):
                     line = f"[{format_time(start)} - {format_time(end)}] {text}"
-                    out.write(line + "\n")
-                    out.flush()
+                    file.write(line + "\n")
+                    file.flush()
 
                 processed_seconds = end
                 if on_progress and total_duration:
@@ -111,15 +132,15 @@ def transcribe_audio(
                     on_progress(min(percentage, 100))
 
             if os.stat(output_file).st_size == 0:
-                out.write("Nenhuma palavra sensível encontrada.")
+                file.write("Nenhuma palavra sensível encontrada.")
 
         if on_update_message:
             on_update_message("Transcrição concluída com sucesso")
 
+        logging.info(f"Transcription completed successfully for {file_path}")
         return True
-
     except Exception as e:
-        logging.error(f"Error transcribing {file_path}: {e}")
+        logging.error(f"Error transcribing {file_path}: {e}", exc_info=True)
         if on_update_message:
-            on_update_message("Erro durante a transcrição")
+            on_update_message(f"Erro durante a transcrição: {str(e)}")
         return False
