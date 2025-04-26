@@ -7,6 +7,8 @@
 import json
 import logging
 import os
+from pathlib import Path
+from typing import Dict
 
 # Application metadata
 APP_NAME = "Police Transcriber"
@@ -26,81 +28,198 @@ AVAILABLE_MODELS = {
     "base": {
         "files": ["model.bin", "vocabulary.txt", "tokenizer.json", "config.json"],
         "download_url": "https://huggingface.co/guillaumekln/faster-whisper-base/resolve/main",
-        "requires_token": False
+        "requires_token": False,
     },
     "small": {
         "files": ["model.bin", "vocabulary.txt", "tokenizer.json", "config.json"],
         "download_url": "https://huggingface.co/guillaumekln/faster-whisper-small/resolve/main",
-        "requires_token": False
+        "requires_token": False,
     },
     "medium": {
         "files": ["model.bin", "vocabulary.txt", "tokenizer.json", "config.json"],
         "download_url": "https://huggingface.co/guillaumekln/faster-whisper-medium/resolve/main",
-        "requires_token": False
+        "requires_token": False,
     },
     "large-v2": {
         "files": ["model.bin", "vocabulary.txt", "tokenizer.json", "config.json"],
         "download_url": "https://huggingface.co/guillaumekln/faster-whisper-large-v2/resolve/main",
-        "requires_token": False
-    }
+        "requires_token": False,
+    },
 }
 """Dictionary of available Whisper models with their required files, download URLs, and token requirements."""
 
+# Configuration file
 CONFIG_FILE = "config.json"
 """Path to the JSON configuration file for persistent settings."""
 
+# Default configuration
+DEFAULT_CONFIG = {
+    "selected_model": "large-v2",
+    "logging_level": "ERROR",
+    "verbose": True,
+    "output_folder": "c:/PoliceTranscriber/Output/" if os.name == "nt" else "/Users/PoliceTranscriber/Output/",
+}
+"""Default configuration settings."""
 
-def load_config() -> dict:
-    """Load configuration from config.json, returning defaults if the file doesn't exist.
+# Valid options for configuration
+VALID_MODELS = list(AVAILABLE_MODELS.keys())
+"""List of valid model names."""
+
+VALID_LOGGING_LEVELS = ["WARNING", "ERROR", "INFO", "ALL"]
+"""List of valid logging levels."""
+
+# Logging configuration
+LOG_FOLDER = "logs"
+"""Directory where application logs are stored."""
+
+Path(LOG_FOLDER).mkdir(exist_ok=True)  # Ensure log folder exists
+
+# Set up app.log logger
+APP_LOG_FILE = os.path.join(LOG_FOLDER, "app.log")
+app_logger = logging.getLogger("app")
+app_handler = logging.FileHandler(APP_LOG_FILE, encoding="utf-8")
+app_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+app_logger.addHandler(app_handler)
+
+# Set up debug.log logger (for verbose mode)
+DEBUG_LOG_FILE = os.path.join(LOG_FOLDER, "debug.log")
+debug_logger = logging.getLogger("debug")
+debug_handler = logging.FileHandler(DEBUG_LOG_FILE, encoding="utf-8")
+debug_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+debug_logger.addHandler(debug_handler)
+debug_logger.setLevel(logging.DEBUG)  # Debug logger always logs at DEBUG level
+
+
+def load_config() -> Dict[str, any]:
+    """Load configuration from config.json, creating it with defaults if it doesn't exist.
 
     Returns:
-        A dictionary with configuration settings (selected_model, logging_level).
+        A dictionary with configuration settings.
     """
-    default_config = {
-        "selected_model": "large-v2",
-        "logging_level": "ERROR"
-    }
+    if not os.path.exists(CONFIG_FILE):
+        save_config(**DEFAULT_CONFIG)
+        app_logger.info(f"Created default configuration file: {CONFIG_FILE}")
+
     try:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, "r", encoding="utf-8") as file:
-                config = json.load(file)
-                # Validate loaded config
-                if config.get("selected_model") not in AVAILABLE_MODELS:
-                    config["selected_model"] = default_config["selected_model"]
-                if config.get("logging_level") not in ["DEBUG", "ERROR"]:
-                    config["logging_level"] = default_config["logging_level"]
-                return config
+        with open(CONFIG_FILE, "r", encoding="utf-8") as file:
+            config = json.load(file)
+
+        # Validate configuration
+        config = validate_config(config)
+        update_logging(config["logging_level"], config["verbose"])
+        return config
     except Exception as e:
-        logging.error(f"Failed to load config: {e}")
-    return default_config
+        app_logger.error(f"Failed to load config: {e}")
+        return DEFAULT_CONFIG
 
 
-def save_config(selected_model: str, logging_level: str) -> None:
+def validate_config(config: Dict[str, any]) -> Dict[str, any]:
+    """Validate the configuration and return a corrected version if necessary.
+
+    Args:
+        config: The configuration dictionary to validate.
+
+    Returns:
+        A validated configuration dictionary.
+    """
+    validated_config = config.copy()
+
+    # Validate selected_model
+    if validated_config.get("selected_model") not in VALID_MODELS:
+        app_logger.warning(
+            f"Invalid selected_model: {validated_config.get('selected_model')}. Using default: {DEFAULT_CONFIG['selected_model']}"
+        )
+        validated_config["selected_model"] = DEFAULT_CONFIG["selected_model"]
+
+    # Validate logging_level
+    if validated_config.get("logging_level") not in VALID_LOGGING_LEVELS:
+        app_logger.warning(
+            f"Invalid logging_level: {validated_config.get('logging_level')}. Using default: {DEFAULT_CONFIG['logging_level']}"
+        )
+        validated_config["logging_level"] = DEFAULT_CONFIG["logging_level"]
+
+    # Validate verbose
+    if not isinstance(validated_config.get("verbose"), bool):
+        app_logger.warning(f"Invalid verbose value: {validated_config.get('verbose')}. Using default: {DEFAULT_CONFIG['verbose']}")
+        validated_config["verbose"] = DEFAULT_CONFIG["verbose"]
+
+    # Validate output_folder
+    output_folder = validated_config.get("output_folder")
+    if not output_folder or not isinstance(output_folder, str):
+        app_logger.warning(f"Invalid output_folder: {output_folder}. Using default: {DEFAULT_CONFIG['output_folder']}")
+        validated_config["output_folder"] = DEFAULT_CONFIG["output_folder"]
+    else:
+        # Ensure the output folder exists
+        Path(output_folder).mkdir(parents=True, exist_ok=True)
+
+    return validated_config
+
+
+def save_config(
+        selected_model: str = DEFAULT_CONFIG["selected_model"],
+        logging_level: str = DEFAULT_CONFIG["logging_level"],
+        verbose: bool = DEFAULT_CONFIG["verbose"],
+        output_folder: str = DEFAULT_CONFIG["output_folder"],
+) -> None:
     """Save configuration to config.json.
 
     Args:
-        selected_model: The selected Whisper model (e.g., 'base', 'small', 'medium', 'large-v2').
-        logging_level: The logging level ('DEBUG' or 'ERROR').
+        selected_model: The selected Whisper model.
+        logging_level: The logging level.
+        verbose: Whether to enable verbose logging.
+        output_folder: The output folder for transcriptions.
     """
     config = {
         "selected_model": selected_model,
-        "logging_level": logging_level
+        "logging_level": logging_level,
+        "verbose": verbose,
+        "output_folder": output_folder,
     }
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as file:
             json.dump(config, file, indent=4)
+        update_logging(logging_level, verbose)
     except Exception as e:
-        logging.error(f"Failed to save config: {e}")
+        repr(app_logger.error(f"Failed to save config: {e}"))
+
+
+def update_logging(logging_level: str, verbose: bool) -> None:
+    """Update logging configuration based on logging_level and verbose settings.
+
+    Args:
+        logging_level: The logging level ('WARNING', 'ERROR', 'INFO', 'ALL').
+        verbose: Whether verbose logging is enabled.
+    """
+    level_map = {
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "INFO": logging.INFO,
+        "ALL": logging.DEBUG,
+    }
+    app_logger.setLevel(level_map[logging_level])
+
+    # Enable/disable debug logger based on verbose
+    if verbose and debug_handler not in debug_logger.handlers:
+        debug_logger.addHandler(debug_handler)
+    elif not verbose and debug_handler in debug_logger.handlers:
+        debug_logger.removeHandler(debug_handler)
 
 
 # Load configuration
 config = load_config()
 SELECTED_MODEL = config["selected_model"]
-"""Name of the currently selected Whisper model (e.g., 'base', 'small', 'medium', 'large-v2')."""
+"""Name of the currently selected Whisper model."""
 
 LOGGING_LEVEL = config["logging_level"]
-"""Logging level for the application ('DEBUG' or 'ERROR')."""
+"""Logging level for the application."""
 
+VERBOSE = config["verbose"]
+"""Whether verbose logging is enabled."""
+
+OUTPUT_FOLDER = config["output_folder"]
+"""Directory where transcription output files are saved."""
+
+# Model-related settings
 LOCAL_MODEL_PATH = os.path.join("models", SELECTED_MODEL)
 """Local directory containing the selected Whisper model's files."""
 
@@ -115,17 +234,11 @@ GITHUB_REPO = "andreipa/police-transcriber"
 """GitHub repository for checking application updates."""
 
 GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-"""URL for fetching the latest release information from GitHub."""
+"""URL11 for fetching the latest release information from GitHub."""
 
 # Transcription configuration
 SENSITIVE_WORDS_FILE = os.path.join("data", "sensible_words.txt")
 """Path to the file containing sensitive words for detection."""
-
-OUTPUT_FOLDER = "output"
-"""Directory where transcription output files are saved."""
-
-LOG_FOLDER = "logs"
-"""Directory where application logs are stored."""
 
 # Platform-specific settings
 SUPPRESS_QT_WARNINGS = False
