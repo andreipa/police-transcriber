@@ -1,100 +1,63 @@
-# Police Transcriber
+Police Transcriber
 
-![Logo](assets/images/logo-police.png)
+Police Transcriber is a standalone, offline audio transcription tool designed for investigative and forensic environments. It detects and logs sensitive or illicit language in .mp3 files using AI-powered transcription via the Whisper model.
 
-**Police Transcriber** is a standalone, offline audio transcription tool designed for investigative and forensic environments. It detects and logs sensitive or illicit language in `.mp3` files using AI-powered transcription via the Whisper model.
+🚀 Features
 
----
+🎙️ Transcribe .mp3 audio files locally
+🔍 Detect and log sensitive keywords
+⏱️ Real-time progress and timestamp tracking
+📂 Supports individual files
+💾 Offline-first: No internet connection required after model download
+🧠 Powered by Faster-Whisper
 
-## 🚀 Features
+📷 Screenshots
 
-- 🎙️ Transcribe `.mp3` audio files locally
-- 🔍 Detect and log sensitive keywords
-- ⏱️ Real-time progress and timestamp tracking
-- 📂 Supports individual files and folders
-- 💾 Offline-first: No internet connection required
-- 🧠 Powered by [Faster-Whisper](https://github.com/guillaumekln/faster-whisper)
+(Add screenshots in the future)
 
----
+🔧 Installation
 
-## 📷 Screenshots
+Clone the repository:
 
-> *(Add screenshots in the future)*
-
----
-
-## 🔧 Installation
-
-1. Clone the repository:
-
-```bash
 git clone https://github.com/andreipa/police-transcriber.git
 cd police-transcriber
-```
 
-2. Set up a virtual environment:
+Set up a virtual environment:
 
-```bash
 python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
-```
 
-3. Install dependencies:
+Install dependencies:
 
-```bash
 pip install -r requirements.txt
-```
 
-4. Download the Whisper large-v3 model manually.
+Run the application to automatically download the Whisper large-v2 model to models/large-v2/.
 
-Place it in:
-
-```
-models/large-v3/model.bin
-```
-
----
-
-## ▶️ Running the Application
-
-```bash
+▶️ Running the Application
 python main.py
-```
 
----
-
-## 📂 Folder Structure
-
-```
+📂 Folder Structure
 .
 ├── assets/
 │   ├── icons/
 │   ├── images/
 │   └── styles/
+├── config.json
 ├── config.py
 ├── core/
 ├── gui/
+├── logs/
 ├── models/
 ├── output/
 ├── requirements.txt
 ├── main.py
 └── README.md
-```
 
----
-
-## 🤝 Contributing
-
+🤝 Contributing
 Pull requests and improvements are welcome!
 
----
+📄 License
+MIT License – see LICENSE file for details.
 
-## 📄 License
-
-MIT License – see [LICENSE](LICENSE) file for details.
-
----
-
-## 🔗 Help
-
-Need help? Visit the Help menu in the app or [GitHub Discussions](https://github.com/your-username/police-transcriber/discussions)
+🔗 Help
+Need help? Visit the Help menu in the app or GitHub Discussions

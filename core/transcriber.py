@@ -18,6 +18,7 @@ def ensure_output_directory() -> None:
 def load_sensitive_words() -> set[str]:
     """Load sensitive words from a file into a set for efficient lookup.
 
+
     Returns:
         A set of lowercase sensitive words, or an empty set if loading fails.
     """

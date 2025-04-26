@@ -8,6 +8,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
+from zipfile import ZipFile
 
 import requests
 from PyQt5.QtCore import QPoint, Qt, QThread, QTimer, QUrl, pyqtSignal
@@ -19,8 +20,9 @@ from PyQt5.QtWidgets import (
 )
 from packaging import version
 
-from config import APP_NAME, GITHUB_RELEASES_URL, OUTPUT_FOLDER, VERSION
+from config import APP_NAME, GITHUB_RELEASES_URL, LOG_FOLDER, OUTPUT_FOLDER, SELECTED_MODEL, VERSION
 from core.transcriber import transcribe_audio
+from gui.settings_dialog import SettingsDialog
 from gui.word_editor import WordEditorDialog
 
 
@@ -91,15 +93,26 @@ class TranscriptionThread(QThread):
 class BackgroundAppUpdateChecker(QThread):
     """A thread for checking application updates in the background."""
 
-    update_available = pyqtSignal(str)
-    """Signal emitted when a new application version is available, with the version string."""
+    update_available = pyqtSignal(str, str)
+    """Signal emitted when a new application version is available, with the version string and release URL."""
 
     def run(self) -> None:
         """Check for the latest application release on GitHub and emit update signal if available."""
         try:
-            # Temporarily disabled due to repository inaccessibility
-            logging.info("Application update check disabled")
-            return
+            response = requests.get(
+                GITHUB_RELEASES_URL,
+                headers={"Accept": "application/vnd.github.v3+json"},
+                timeout=5
+            )
+            response.raise_for_status()
+            data = response.json()
+            latest_version = data.get("tag_name", "").lstrip("v")
+            release_url = data.get("html_url", "https://github.com/andreipa/police-transcriber/releases")
+            if latest_version and version.parse(latest_version) > version.parse(VERSION):
+                logging.info(f"New version available: {latest_version}")
+                self.update_available.emit(latest_version, release_url)
+            else:
+                logging.info("No new version available")
         except requests.RequestException as e:
             logging.warning(f"Failed to check for application updates: {e}")
 
@@ -135,9 +148,17 @@ class MainWindow(QWidget):
             edit_words_action = QAction(QIcon("assets/icons/edit.png"), "Editar Palavras Sensíveis", self)
             edit_words_action.triggered.connect(self.open_word_editor)
             tools_menu.addAction(edit_words_action)
-            check_app_action = QAction(QIcon("assets/icons/refresh.png"), "Verificar Atualização do Programa", self)
-            check_app_action.triggered.connect(self.check_app_update)
-            tools_menu.addAction(check_app_action)
+            open_log_action = QAction(QIcon("assets/icons/log.png"), "Abrir Log", self)
+            open_log_action.triggered.connect(self.open_log_file)
+            tools_menu.addAction(open_log_action)
+            backup_transcriptions_action = QAction(QIcon("assets/icons/backup.png"), "Fazer Backup das Transcrições", self)
+            backup_transcriptions_action.triggered.connect(self.backup_transcriptions)
+            tools_menu.addAction(backup_transcriptions_action)
+
+            settings_menu = menu_bar.addMenu("Configurações")
+            settings_action = QAction(QIcon("assets/icons/settings.png"), "Configurações", self)
+            settings_action.triggered.connect(self.open_settings_dialog)
+            settings_menu.addAction(settings_action)
 
             help_menu = menu_bar.addMenu("Ajuda")
             help_action = QAction(QIcon("assets/icons/help.png"), "Ajuda Online...", self)
@@ -158,12 +179,15 @@ class MainWindow(QWidget):
             self.select_file_button = QPushButton("Selecionar Arquivo")
             self.select_file_button.setIcon(QIcon("assets/icons/file.png"))
             self.select_file_button.clicked.connect(self.select_file)
+            self.select_file_button.setFixedSize(150, 40)  # Larger button size
             button_layout.addWidget(self.select_file_button)
 
             self.select_folder_button = QPushButton("Selecionar Pasta")
             self.select_folder_button.setIcon(QIcon("assets/icons/folder.png"))
             self.select_folder_button.clicked.connect(self.select_folder)
+            self.select_folder_button.setFixedSize(150, 40)  # Larger button size
             button_layout.addWidget(self.select_folder_button)
+
             layout.addLayout(button_layout)
 
             # Initialize file list with context menu
@@ -184,6 +208,7 @@ class MainWindow(QWidget):
             self.transcribe_button.setIcon(QIcon("assets/icons/start.png"))
             self.transcribe_button.setEnabled(False)
             self.transcribe_button.clicked.connect(self.start_transcription)
+            self.transcribe_button.setFixedSize(150, 40)  # Larger button size
             transcribe_layout.addWidget(self.transcribe_button)
 
             self.stop_button = QPushButton("Parar")
@@ -191,6 +216,7 @@ class MainWindow(QWidget):
             self.stop_button.setIcon(QIcon("assets/icons/stop.png"))
             self.stop_button.setEnabled(False)
             self.stop_button.clicked.connect(self.stop_transcription)
+            self.stop_button.setFixedSize(150, 40)  # Larger button size
             transcribe_layout.addWidget(self.stop_button)
             layout.addLayout(transcribe_layout)
 
@@ -206,13 +232,14 @@ class MainWindow(QWidget):
 
             # Initialize status bar
             self.status_bar = QStatusBar()
-            self.status_bar.showMessage("Modelo carregado: large-v3 | Última atualização: --")
+            self.status_bar.showMessage(f"Modelo carregado: {SELECTED_MODEL} | Última atualização: --")
+            self.status_bar.messageChanged.connect(self.handle_status_bar_click)
             layout.addWidget(self.status_bar)
 
             # Initialize background update checker
             self.update_checker = BackgroundAppUpdateChecker()
             self.update_checker.update_available.connect(self.notify_update_available)
-            self.update_checker.start()
+            self.update_checker.start()  # Start automatic update check
 
             # Initialize timer and state variables
             self.elapsed_timer = QTimer()
@@ -222,6 +249,7 @@ class MainWindow(QWidget):
             self.queued_files = []
             self.current_file = None
             self.processed_files = []
+            self.release_url = ""  # Store release URL for status bar click
 
             self.setLayout(layout)
             logging.debug("MainWindow initialization completed")
@@ -234,13 +262,24 @@ class MainWindow(QWidget):
         logging.debug("MainWindow closeEvent triggered")
         event.accept()
 
-    def notify_update_available(self, version: str) -> None:
-        """Display a notification in the status bar when a new application version is available.
+    def notify_update_available(self, version: str, release_url: str) -> None:
+        """Display a clickable notification in the status bar when a new version is available.
 
         Args:
             version: The version string of the available update.
+            release_url: The URL of the GitHub release page.
         """
-        self.status_bar.showMessage(f"🔔 Atualização disponível: v{version}")
+        self.release_url = release_url
+        self.status_bar.showMessage(f"🔔 Atualização disponível: v{version}. Clique para baixar.")
+
+    def handle_status_bar_click(self, message: str) -> None:
+        """Handle clicks on the status bar to open the release URL if an update is available."""
+        if message.startswith("🔔 Atualização disponível") and self.release_url:
+            try:
+                QDesktopServices.openUrl(QUrl(self.release_url))
+                logging.debug(f"Opened release URL: {self.release_url}")
+            except Exception as e:
+                logging.error(f"Failed to open release URL: {e}")
 
     def select_file(self) -> None:
         """Open a file dialog to select an MP3 file and update the transcription queue."""
@@ -308,8 +347,67 @@ class MainWindow(QWidget):
 
     def open_word_editor(self) -> None:
         """Open a dialog for editing the list of sensitive words."""
-        dialog = WordEditorDialog(self)
-        dialog.exec_()
+        try:
+            dialog = WordEditorDialog(self)
+            dialog.exec_()
+        except Exception as e:
+            logging.error(f"Failed to open word editor: {e}")
+            QMessageBox.critical(self, "Erro", "Não foi possível abrir o editor de palavras sensíveis.")
+
+    def open_log_file(self) -> None:
+        """Open the application log file in the default text editor."""
+        log_file = os.path.join(LOG_FOLDER, "app.log")
+        try:
+            if os.path.exists(log_file):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(log_file))
+            else:
+                logging.warning("Log file does not exist")
+                QMessageBox.warning(self, "Aviso", "O arquivo de log não existe.")
+        except Exception as e:
+            logging.error(f"Failed to open log file: {e}")
+            QMessageBox.critical(self, "Erro", "Não foi possível abrir o arquivo de log.")
+
+    def backup_transcriptions(self) -> None:
+        """Create a ZIP backup of all transcriptions in the output folder and delete the originals."""
+        try:
+            if not os.path.exists(OUTPUT_FOLDER):
+                logging.warning("Output folder does not exist")
+                QMessageBox.warning(self, "Aviso", "Nenhuma transcrição encontrada para backup.")
+                return
+
+            # Create a ZIP file with timestamp
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            zip_path = os.path.join(OUTPUT_FOLDER, f"transcriptions_backup_{timestamp}.zip")
+            files_to_backup = [f for f in os.listdir(OUTPUT_FOLDER) if f.endswith(".txt")]
+
+            if not files_to_backup:
+                logging.warning("No transcription files found for backup")
+                QMessageBox.warning(self, "Aviso", "Nenhuma transcrição encontrada para backup.")
+                return
+
+            with ZipFile(zip_path, "w") as zip_file:
+                for file_name in files_to_backup:
+                    file_path = os.path.join(OUTPUT_FOLDER, file_name)
+                    zip_file.write(file_path, file_name)
+
+            # Delete original files
+            for file_name in files_to_backup:
+                os.remove(os.path.join(OUTPUT_FOLDER, file_name))
+
+            logging.info(f"Created backup: {zip_path} and deleted original transcriptions")
+            QMessageBox.information(self, "Sucesso", f"Backup criado em {zip_path}. Transcrições originais foram removidas.")
+        except Exception as e:
+            logging.error(f"Failed to backup transcriptions: {e}")
+            QMessageBox.critical(self, "Erro", "Não foi possível criar o backup das transcrições.")
+
+    def open_settings_dialog(self) -> None:
+        """Open the settings dialog to configure application options."""
+        try:
+            dialog = SettingsDialog(self)
+            dialog.exec_()
+        except Exception as e:
+            logging.error(f"Failed to open settings dialog: {e}")
+            QMessageBox.critical(self, "Erro", "Não foi possível abrir as configurações.")
 
     def start_transcription(self) -> None:
         """Start the transcription process for queued files."""
@@ -391,52 +489,9 @@ class MainWindow(QWidget):
         self.current_file = None
         QMessageBox.critical(self, "Erro", f"Erro ao transcrever o arquivo: {file_path}")
 
-    def check_app_update(self) -> None:
-        """Check for application updates on GitHub and prompt the user if available."""
-        try:
-            response = requests.get(
-                GITHUB_RELEASES_URL,
-                headers={"Accept": "application/vnd.github.v3+json"},
-                timeout=5
-            )
-            response.raise_for_status()
-            latest_release = response.json()
-            latest_version = latest_release.get("tag_name", "").lstrip("v")
-
-            if not latest_version:
-                QMessageBox.information(
-                    self,
-                    "Atualização",
-                    "Ainda não há versões publicadas"
-                )
-                return
-
-            if version.parse(latest_version) > version.parse(VERSION):
-                reply = QMessageBox.question(
-                    self,
-                    "Atualização Disponível",
-                    f"Uma nova versão ({latest_version}) está disponível.\nDeseja abrir a página de download?",
-                    QMessageBox.Yes | QMessageBox.No
-                )
-                if reply == QMessageBox.Yes:
-                    QDesktopServices.openUrl(QUrl(latest_release["html_url"]))
-            else:
-                QMessageBox.information(
-                    self,
-                    "Atualização",
-                    "Você já está usando a versão mais recente"
-                )
-        except (requests.RequestException, ValueError) as e:
-            logging.warning(f"Failed to check for application update: {e}")
-            QMessageBox.information(
-                self,
-                "Atualização",
-                "Não foi possível verificar atualizações no momento. Tente novamente mais tarde"
-            )
-
     def open_help_link(self) -> None:
         """Open the application's online help page in the default web browser."""
-        QDesktopServices.openUrl(QUrl("https://github.com/{GITHUB_REPO}"))
+        QDesktopServices.openUrl(QUrl("https://github.com/andreipa/police-transcriber"))
 
     def show_about(self) -> None:
         """Display an About dialog with the application logo, name, and version."""
@@ -496,6 +551,7 @@ class MainWindow(QWidget):
                 file_layout = QHBoxLayout()
                 file_layout.addWidget(QLabel(f"{os.path.basename(file_path)}: {word_count} palavras sensíveis"))
                 open_button = QPushButton("Abrir")
+                open_button.setFixedSize(100, 40)  # Consistent with larger button sizes
                 open_button.clicked.connect(lambda _, path=str(txt_path.resolve()): QDesktopServices.openUrl(QUrl.fromLocalFile(path)))
                 file_layout.addWidget(open_button)
                 layout.addLayout(file_layout)

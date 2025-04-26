@@ -7,16 +7,20 @@ import os
 
 import requests
 
-from config import AVAILABLE_MODELS, LOCAL_MODEL_PATH, MODEL_FILES, MODEL_DOWNLOAD_BASE_URL, SELECTED_MODEL
+from config import LOCAL_MODEL_PATH, MODEL_FILES, MODEL_DOWNLOAD_BASE_URL, SELECTED_MODEL
 
-MIN_MODEL_BIN_SIZE = 2.5 * 1024 * 1024 * 1024  # 2.5 GB for model.bin
-
+MIN_MODEL_BIN_SIZE = {
+    "base": 145 * 1024 * 1024,  # 145 MB for base model.bin
+    "small": 484 * 1024 * 1024,  # 484 MB for small.bin
+    "medium": 1.53 * 1024 * 1024 * 1024,  # 1.53 GB for medium.bin
+    "large-v2": 3.09 * 1024 * 1024 * 1024  # 3.09 GB for large-v2 model.bin
+}
 
 def is_model_fully_downloaded() -> bool:
     """Check if all required model files are present and valid.
 
     Returns:
-        True if all model files exist and model.bin meets the minimum size, False otherwise.
+        True if all model files exist and the main model file meets the minimum size, False otherwise.
     """
     try:
         for file_name in MODEL_FILES:
@@ -25,10 +29,12 @@ def is_model_fully_downloaded() -> bool:
                 logging.warning(f"Missing model file: {file_path}")
                 return False
 
-            if file_name == "model.bin":
+            # Check size for main model file (model.bin or *.bin)
+            if file_name.endswith('.bin'):
                 size = os.path.getsize(file_path)
-                if size < MIN_MODEL_BIN_SIZE:
-                    logging.warning(f"model.bin is too small: {size} bytes")
+                min_size = MIN_MODEL_BIN_SIZE.get(SELECTED_MODEL, 145 * 1024 * 1024)  # Default to base size
+                if size < min_size:
+                    logging.warning(f"Model file {file_name} is too small: {size} bytes, expected >= {min_size} bytes")
                     return False
 
         logging.info("All model files verified")
@@ -38,19 +44,18 @@ def is_model_fully_downloaded() -> bool:
         return False
 
 
-def download_model(progress_callback=None, token: str | None = None) -> bool:
+def download_model(progress_callback=None) -> bool:
     """Download all required model files from the Hugging Face repository.
 
     Args:
         progress_callback: Optional function to report cumulative download progress (0-100).
-        token: Optional Hugging Face API token for private or gated repositories.
 
     Returns:
         True if all files were downloaded successfully, False otherwise.
     """
     try:
         os.makedirs(LOCAL_MODEL_PATH, exist_ok=True)
-        headers = {"Authorization": f"Bearer {token}"} if token and AVAILABLE_MODELS[SELECTED_MODEL]["requires_token"] else {}
+        headers = {}
 
         total_sizes = []
         for file_name in MODEL_FILES:
@@ -95,13 +100,12 @@ def download_model(progress_callback=None, token: str | None = None) -> bool:
         return False
 
 
-def ensure_model_available(on_status=None, on_progress=None, token: str | None = None) -> bool:
+def ensure_model_available(on_status=None, on_progress=None) -> bool:
     """Ensure all required model files are available, downloading them if necessary.
 
     Args:
         on_status: Optional callback to update status messages.
         on_progress: Optional callback to report download progress (0-100).
-        token: Optional Hugging Face API token for private or gated repositories.
 
     Returns:
         True if the model is available, False if download fails.
@@ -114,7 +118,7 @@ def ensure_model_available(on_status=None, on_progress=None, token: str | None =
         if on_status:
             on_status("Baixando modelo...")
 
-        return download_model(progress_callback=on_progress, token=token)
+        return download_model(progress_callback=on_progress)
     except Exception as e:
         logging.error(f"Failed to ensure model availability: {e}")
         return False

@@ -3,13 +3,16 @@
 #  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
 
 """Configuration settings for the Police Transcriber application."""
+
+import json
+import logging
 import os
 
 # Application metadata
 APP_NAME = "Police Transcriber"
 """Name of the application."""
 
-VERSION = "v0.0.1-alpha"
+VERSION = "v0.1.0-alpha"
 """Current version of the application."""
 
 SLOGAN_PT = "Detecção Automática de Conversas Ilícitas com IA"
@@ -37,14 +40,66 @@ AVAILABLE_MODELS = {
     },
     "large-v2": {
         "files": ["model.bin", "vocabulary.txt", "tokenizer.json", "config.json"],
-        "download_url": "https://huggingface.co/guillaumekln/faster-whisper-medium/resolve/main",
+        "download_url": "https://huggingface.co/guillaumekln/faster-whisper-large-v2/resolve/main",
         "requires_token": False
     }
 }
 """Dictionary of available Whisper models with their required files, download URLs, and token requirements."""
 
-SELECTED_MODEL = "large-v2"
+CONFIG_FILE = "config.json"
+"""Path to the JSON configuration file for persistent settings."""
+
+
+def load_config() -> dict:
+    """Load configuration from config.json, returning defaults if the file doesn't exist.
+
+    Returns:
+        A dictionary with configuration settings (selected_model, logging_level).
+    """
+    default_config = {
+        "selected_model": "large-v2",
+        "logging_level": "ERROR"
+    }
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, "r", encoding="utf-8") as file:
+                config = json.load(file)
+                # Validate loaded config
+                if config.get("selected_model") not in AVAILABLE_MODELS:
+                    config["selected_model"] = default_config["selected_model"]
+                if config.get("logging_level") not in ["DEBUG", "ERROR"]:
+                    config["logging_level"] = default_config["logging_level"]
+                return config
+    except Exception as e:
+        logging.error(f"Failed to load config: {e}")
+    return default_config
+
+
+def save_config(selected_model: str, logging_level: str) -> None:
+    """Save configuration to config.json.
+
+    Args:
+        selected_model: The selected Whisper model (e.g., 'base', 'small', 'medium', 'large-v2').
+        logging_level: The logging level ('DEBUG' or 'ERROR').
+    """
+    config = {
+        "selected_model": selected_model,
+        "logging_level": logging_level
+    }
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as file:
+            json.dump(config, file, indent=4)
+    except Exception as e:
+        logging.error(f"Failed to save config: {e}")
+
+
+# Load configuration
+config = load_config()
+SELECTED_MODEL = config["selected_model"]
 """Name of the currently selected Whisper model (e.g., 'base', 'small', 'medium', 'large-v2')."""
+
+LOGGING_LEVEL = config["logging_level"]
+"""Logging level for the application ('DEBUG' or 'ERROR')."""
 
 LOCAL_MODEL_PATH = os.path.join("models", SELECTED_MODEL)
 """Local directory containing the selected Whisper model's files."""
@@ -73,5 +128,5 @@ LOG_FOLDER = "logs"
 """Directory where application logs are stored."""
 
 # Platform-specific settings
-SUPPRESS_QT_WARNINGS = True
-"""Flag to suppress Qt-related warnings on macOS."""
+SUPPRESS_QT_WARNINGS = False
+"""Flag to suppress Qt-related warnings on macOS (disabled for debugging)."""

@@ -6,26 +6,35 @@ import logging
 import os
 import sys
 import traceback
+from datetime import datetime
 
 from PyQt5.QtCore import QTimer, QtMsgType, qInstallMessageHandler
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
-from config import AVAILABLE_MODELS, SELECTED_MODEL, HF_TOKEN
+from config import LOGGING_LEVEL, LOG_FOLDER
 from core.model_downloader import ensure_model_available
 from gui.main_window import MainWindow
 from gui.splash import SplashScreen
 
 
 def configure_logging() -> None:
-    """Configure logging to capture debug, warnings, and errors in a log file."""
-    os.makedirs("logs", exist_ok=True)
+    """Configure logging to capture debug, warnings, or errors in a log file."""
+    os.makedirs(LOG_FOLDER, exist_ok=True)
+    log_file = os.path.join(LOG_FOLDER, "app.log")
+
+    # Check if app.log exceeds 10MB (10 * 1024 * 1024 bytes)
+    max_size = 10 * 1024 * 1024
+    if os.path.exists(log_file) and os.path.getsize(log_file) > max_size:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        os.rename(log_file, os.path.join(LOG_FOLDER, f"app_{timestamp}.log"))
+        logging.debug("Reset app.log due to size exceeding 10MB")
+
     logging.basicConfig(
-        filename="logs/app.log",
-        level=logging.DEBUG,
+        filename=log_file,
+        level=getattr(logging, LOGGING_LEVEL, logging.ERROR),
         format="%(asctime)s [%(levelname)s] %(message)s"
     )
     logging.debug("Logging configured")
-
 
 def qt_message_handler(msg_type: QtMsgType, context: object, msg: str) -> None:
     """Handle Qt messages and log them."""
@@ -41,7 +50,6 @@ def qt_message_handler(msg_type: QtMsgType, context: object, msg: str) -> None:
         logging.critical(f"Qt Fatal: {msg}")
     else:
         logging.info(f"Qt Unknown: {msg}")
-
 
 def main() -> None:
     """Initialize the application, check model availability, and display the main window."""
@@ -100,11 +108,9 @@ def main() -> None:
     def run_model_download() -> None:
         """Trigger model download and proceed to main window."""
         logging.debug("Starting model download")
-        token = HF_TOKEN if AVAILABLE_MODELS[SELECTED_MODEL]["requires_token"] else None
         success = ensure_model_available(
             on_status=splash.setMessage,
-            on_progress=splash.setProgress,
-            token=token
+            on_progress=splash.setProgress
         )
         logging.debug(f"Model download result: {success}")
         QTimer.singleShot(0, continue_after_model)
