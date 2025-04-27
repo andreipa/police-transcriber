@@ -4,66 +4,230 @@
 
 """Settings dialog for configuring the Police Transcriber application."""
 
-import logging
-
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QCheckBox, QComboBox, QDialog, QDialogButtonBox, QLabel, QVBoxLayout
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QFormLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QMessageBox,
 )
 
-from config import AVAILABLE_MODELS, SELECTED_MODEL, LOGGING_LEVEL, save_config
+from config import (
+    AVAILABLE_MODELS,
+    SELECTED_MODEL,
+    LOGGING_LEVEL,
+    VERBOSE,
+    OUTPUT_FOLDER,
+    CHECK_FOR_UPDATES,
+    app_logger,
+    debug_logger,
+    save_config,
+)
 
 
 class SettingsDialog(QDialog):
-    """Dialog for configuring application settings, including model selection and logging level."""
+    """Dialog for configuring application settings, including model, logging, output folder, and updates."""
 
     def __init__(self, parent=None) -> None:
-        """Initialize the settings dialog with model selection and logging options.
+        """Initialize the settings dialog with configuration options.
 
         Args:
             parent: The parent widget (e.g., MainWindow).
         """
         super().__init__(parent)
         self.setWindowTitle("Configurações")
-        self.setFixedSize(300, 200)
+        self.setMinimumSize(450, 550)  # Adjusted for content and readability
+        self.setObjectName("SettingsDialog")  # For stylesheet targeting
 
+        # Main layout
         layout = QVBoxLayout()
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Form layout for settings
+        form_layout = QFormLayout()
+        form_layout.setLabelAlignment(Qt.AlignRight)
+        form_layout.setFormAlignment(Qt.AlignLeft)
+        form_layout.setSpacing(12)
+        form_layout.setContentsMargins(0, 0, 0, 10)
 
         # Model selection
-        layout.addWidget(QLabel("Modelo de Transcrição:"))
+        model_label = QLabel("Modelo de Transcrição:")
+        model_label.setObjectName("SettingsLabel")
         self.model_combo = QComboBox()
         self.model_combo.addItems(AVAILABLE_MODELS.keys())
         self.model_combo.setCurrentText(SELECTED_MODEL)
-        self.model_combo.setToolTip(
-            "Selecione o modelo de transcrição:\n"
-            "- Base: 145 MB, baixa precisão, rápido, ideal para testes.\n"
-            "- Small: 484 MB, precisão moderada, bom equilíbrio.\n"
-            "- Medium: 1.53 GB, alta precisão, recomendado para uso geral.\n"
-            "- Large-v2: 3.09 GB, máxima precisão, ideal para transcrições críticas, mas mais lento."
-        )
-        layout.addWidget(self.model_combo)
+        self.model_combo.setObjectName("SettingsComboBox")
+        form_layout.addRow(model_label, self.model_combo)
 
-        # Debug logging toggle
-        self.debug_checkbox = QCheckBox("Habilitar Log Detalhado (Debug)")
-        self.debug_checkbox.setChecked(LOGGING_LEVEL == "DEBUG")
-        self.debug_checkbox.setToolTip("Habilita logs detalhados para depuração. Desative para registrar apenas erros.")
-        layout.addWidget(self.debug_checkbox)
+        # Model description
+        self.model_description = QLabel(self.get_model_description(SELECTED_MODEL))
+        self.model_description.setWordWrap(True)
+        self.model_description.setObjectName("SettingsDescription")
+        self.model_description.setMinimumHeight(60)
+        form_layout.addRow("", self.model_description)
+        self.model_combo.currentTextChanged.connect(self.update_model_description)
+
+        # Logging level
+        logging_label = QLabel("Nível de Log:")
+        logging_label.setObjectName("SettingsLabel")
+        self.logging_combo = QComboBox()
+        self.logging_combo.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+        self.logging_combo.setCurrentText(LOGGING_LEVEL)
+        self.logging_combo.setObjectName("SettingsComboBox")
+        self.logging_combo.setToolTip(
+            "Nível de log para app.log:\n"
+            "- DEBUG: Todos os detalhes (desenvolvimento).\n"
+            "- INFO: Eventos principais (monitoramento).\n"
+            "- WARNING: Avisos não críticos.\n"
+            "- ERROR: Erros recuperáveis (padrão).\n"
+            "- CRITICAL: Erros graves que param o aplicativo."
+        )
+        form_layout.addRow(logging_label, self.logging_combo)
+
+        # Verbose logging
+        self.verbose_checkbox = QCheckBox("Habilitar Log Detalhado (debug.log)")
+        self.verbose_checkbox.setChecked(VERBOSE)
+        self.verbose_checkbox.setObjectName("SettingsCheckBox")
+        self.verbose_checkbox.setToolTip(
+            "Habilita logs detalhados em logs/debug.log para depuração. "
+            "Útil para diagnosticar problemas, mas pode gerar arquivos grandes."
+        )
+        form_layout.addRow("", self.verbose_checkbox)
+
+        # Output folder
+        output_label = QLabel("Pasta de Saída:")
+        output_label.setObjectName("SettingsLabel")
+        self.output_line_edit = QLineEdit(OUTPUT_FOLDER)
+        self.output_line_edit.setReadOnly(True)
+        self.output_line_edit.setObjectName("SettingsLineEdit")
+        self.output_line_edit.setToolTip("Pasta onde as transcrições serão salvas.")
+        output_button = QPushButton("Selecionar")
+        output_button.setObjectName("SettingsButton")
+        output_button.clicked.connect(self.select_output_folder)
+        output_layout = QVBoxLayout()
+        output_layout.addWidget(self.output_line_edit)
+        output_layout.addWidget(output_button)
+        form_layout.addRow(output_label, output_layout)
+
+        # Check for updates
+        self.updates_checkbox = QCheckBox("Verificar Atualizações ao Iniciar")
+        self.updates_checkbox.setChecked(CHECK_FOR_UPDATES)
+        self.updates_checkbox.setObjectName("SettingsCheckBox")
+        self.updates_checkbox.setToolTip(
+            "Verifica automaticamente se há novas versões do aplicativo ao iniciar."
+        )
+        form_layout.addRow("", self.updates_checkbox)
+
+        # Add form to main layout
+        layout.addLayout(form_layout)
+
+        # Status label for feedback
+        self.status_label = QLabel("")
+        self.status_label.setObjectName("SettingsStatusLabel")
+        self.status_label.setWordWrap(True)
+        self.status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.status_label)
 
         # Buttons
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.setObjectName("SettingsButtonBox")
+        ok_button = button_box.button(QDialogButtonBox.Ok)
+        ok_button.setObjectName("PrimaryButton")
+        cancel_button = button_box.button(QDialogButtonBox.Cancel)
+        cancel_button.setObjectName("SettingsButton")
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
         self.setLayout(layout)
 
+    def get_model_description(self, model: str) -> str:
+        """Get a description of the selected model.
+
+        Args:
+            model: The model name (e.g., 'base', 'small', 'medium', 'large-v2').
+
+        Returns:
+            A string describing the model's characteristics.
+        """
+        descriptions = {
+            "base": "Base: 145 MB, baixa precisão, rápido, ideal para testes.",
+            "small": "Small: 484 MB, precisão moderada, bom equilíbrio.",
+            "medium": "Medium: 1.53 GB, alta precisão, recomendado para uso geral.",
+            "large-v2": "Large-v2: 3.09 GB, máxima precisão, ideal para transcrições críticas, mas mais lento.",
+        }
+        return descriptions.get(model, "Selecione um modelo para ver a descrição.")
+
+    def update_model_description(self, model: str) -> None:
+        """Update the model description label when the selected model changes.
+
+        Args:
+            model: The newly selected model name.
+        """
+        self.model_description.setText(self.get_model_description(model))
+        debug_logger.debug(f"Updated model description to: {model}")
+
+    def select_output_folder(self) -> None:
+        """Open a folder picker dialog to select the output folder."""
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Selecionar Pasta de Saída",
+            self.output_line_edit.text() or os.path.expanduser("~"),
+            QFileDialog.ShowDirsOnly
+        )
+        if folder:
+            self.output_line_edit.setText(folder)
+            app_logger.info(f"Selected output folder: {folder}")
+            debug_logger.debug(f"Output folder selection changed to: {folder}")
+
     def accept(self) -> None:
         """Save settings when the OK button is clicked."""
         try:
             selected_model = self.model_combo.currentText()
-            logging_level = "DEBUG" if self.debug_checkbox.isChecked() else "ERROR"
-            save_config(selected_model, logging_level)
-            logging.info(f"Saved settings: model={selected_model}, logging_level={logging_level}")
+            logging_level = self.logging_combo.currentText()
+            verbose = self.verbose_checkbox.isChecked()
+            output_folder = self.output_line_edit.text()
+            check_for_updates = self.updates_checkbox.isChecked()
+
+            # Validate output folder
+            if not os.path.isdir(output_folder):
+                app_logger.warning(f"Invalid output folder: {output_folder}. Attempting to create.")
+                Path(output_folder).mkdir(parents=True, exist_ok=True)
+                if not os.path.isdir(output_folder):
+                    self.status_label.setText("Erro: Pasta de saída inválida.")
+                    app_logger.error(f"Failed to create output folder: {output_folder}")
+                    return
+
+            save_config(
+                selected_model=selected_model,
+                logging_level=logging_level,
+                verbose=verbose,
+                output_folder=output_folder,
+                check_for_updates=check_for_updates,
+            )
+            app_logger.info(
+                f"Saved settings: model={selected_model}, logging_level={logging_level}, "
+                f"verbose={verbose}, output_folder={output_folder}, check_for_updates={check_for_updates}"
+            )
+            self.status_label.setText("Configurações salvas com sucesso!")
+            debug_logger.debug("Settings saved successfully")
             super().accept()
         except Exception as e:
-            logging.error(f"Failed to save settings: {e}")
-            super().reject()
+            app_logger.error(f"Failed to save settings: {e}")
+            self.status_label.setText("Erro ao salvar configurações.")
+            debug_logger.debug(f"Failed to save settings: {str(e)}")
+            QMessageBox.critical(self, "Erro", "Falha ao salvar configurações. Verifique os logs para detalhes.")
+
+    def reject(self) -> None:
+        """Handle the Cancel button click."""
+        self.status_label.setText("")
+        debug_logger.debug("Settings dialog cancelled")
+        super().reject()

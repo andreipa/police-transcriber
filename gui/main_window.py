@@ -4,7 +4,6 @@
 
 """Main application window for the Police Transcriber, providing a GUI for audio transcription."""
 
-import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -14,13 +13,35 @@ import requests
 from PyQt5.QtCore import QPoint, Qt, QThread, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices, QIcon, QPixmap
 from PyQt5.QtWidgets import (
-    QAction, QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QLabel,
-    QListWidget, QMenu, QMenuBar, QMessageBox, QProgressBar, QPushButton,
-    QStatusBar, QVBoxLayout, QWidget
+    QAction,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QMenu,
+    QMenuBar,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QStatusBar,
+    QVBoxLayout,
+    QWidget,
 )
 from packaging import version
 
-from config import APP_NAME, GITHUB_RELEASES_URL, LOG_FOLDER, OUTPUT_FOLDER, SELECTED_MODEL, VERSION
+from config import (
+    APP_NAME,
+    GITHUB_RELEASES_URL,
+    LOG_FOLDER,
+    OUTPUT_FOLDER,
+    SELECTED_MODEL,
+    VERSION,
+    CHECK_FOR_UPDATES,
+    app_logger,
+    debug_logger,
+)
 from core.transcriber import transcribe_audio
 from gui.settings_dialog import SettingsDialog
 from gui.word_editor import WordEditorDialog
@@ -57,15 +78,18 @@ class TranscriptionThread(QThread):
         """Execute the transcription process for all files in the queue."""
         try:
             total_files = len(self.files)
-            logging.info(f"Starting transcription for {total_files} files")
+            app_logger.info(f"Starting transcription for {total_files} files")
+            debug_logger.debug(f"Transcription queue: {self.files}")
             processed_files = []
 
             for index, file_path in enumerate(self.files):
                 if self.cancelled:
-                    logging.warning("Transcription cancelled by user")
+                    app_logger.warning("Transcription cancelled by user")
+                    debug_logger.debug("Transcription cancelled")
                     return
 
-                logging.info(f"Transcribing: {file_path}")
+                app_logger.info(f"Transcribing: {file_path}")
+                debug_logger.debug(f"Processing file {index + 1}/{total_files}: {file_path}")
                 self.current_file.emit(os.path.basename(file_path))
                 success = transcribe_audio(
                     file_path,
@@ -74,21 +98,26 @@ class TranscriptionThread(QThread):
                 )
 
                 if success == "cancelled":
-                    logging.info(f"Transcription cancelled for: {file_path}")
+                    app_logger.info(f"Transcription cancelled for: {file_path}")
+                    debug_logger.debug(f"Cancelled transcription for: {file_path}")
                     return
                 if not success:
-                    logging.error(f"Transcription failed for: {file_path}")
+                    app_logger.error(f"Transcription failed for: {file_path}")
+                    debug_logger.debug(f"Transcription failed for: {file_path}")
                     self.failed.emit(file_path)
                     return
 
                 processed_files.append(file_path)
                 self.progress.emit(int(((index + 1) / total_files) * 100))
 
-            logging.info("All files transcribed successfully")
+            app_logger.info("All files transcribed successfully")
+            debug_logger.debug(f"Processed files: {processed_files}")
             self.finished.emit("Todas as transcrições foram concluídas.", processed_files)
         except Exception as e:
-            logging.error(f"Unhandled error during transcription: {e}")
+            app_logger.error(f"Unhandled error during transcription: {e}", exc_info=True)
+            debug_logger.debug(f"Transcription error: {traceback.format_exc()}")
             self.failed.emit("Erro interno na transcrição")
+
 
 class BackgroundAppUpdateChecker(QThread):
     """A thread for checking application updates in the background."""
@@ -109,12 +138,16 @@ class BackgroundAppUpdateChecker(QThread):
             latest_version = data.get("tag_name", "").lstrip("v")
             release_url = data.get("html_url", "https://github.com/andreipa/police-transcriber/releases")
             if latest_version and version.parse(latest_version) > version.parse(VERSION):
-                logging.info(f"New version available: {latest_version}")
+                app_logger.info(f"New version available: {latest_version}")
+                debug_logger.debug(f"Update check found new version: {latest_version}, URL: {release_url}")
                 self.update_available.emit(latest_version, release_url)
             else:
-                logging.info("No new version available")
+                app_logger.info("No new version available")
+                debug_logger.debug("Update check: No new version found")
         except requests.RequestException as e:
-            logging.warning(f"Failed to check for application updates: {e}")
+            app_logger.warning(f"Failed to check for application updates: {e}")
+            debug_logger.debug(f"Update check error: {str(e)}")
+
 
 class MainWindow(QWidget):
     """Main application window for managing audio file transcription and sensitive word detection."""
@@ -122,16 +155,21 @@ class MainWindow(QWidget):
     def __init__(self) -> None:
         """Initialize the main window with UI components and transcription controls."""
         super().__init__()
-        logging.debug("Initializing MainWindow")
+        app_logger.debug("Initializing MainWindow")
+        debug_logger.debug("Starting MainWindow setup")
         try:
             self.setWindowTitle("Police Transcriber")
-            self.setFixedSize(600, 520)
+            self.setMinimumSize(600, 520)
+            self.setObjectName("MainWindow")  # For stylesheet targeting
 
             layout = QVBoxLayout()
             layout.setAlignment(Qt.AlignTop)
+            layout.setSpacing(10)
+            layout.setContentsMargins(10, 10, 10, 10)
 
             # Initialize menu bar
             menu_bar = QMenuBar(self)
+            menu_bar.setObjectName("MenuBar")
             file_menu = menu_bar.addMenu("Arquivo")
             open_file_action = QAction(QIcon("assets/icons/file.png"), "Selecionar Arquivo", self)
             open_file_action.triggered.connect(self.select_file)
@@ -172,20 +210,22 @@ class MainWindow(QWidget):
             layout.setMenuBar(menu_bar)
 
             # Add instruction label
-            layout.addWidget(QLabel("Selecione um arquivo .mp3 ou uma pasta para transcrição:"))
+            instruction_label = QLabel("Selecione um arquivo .mp3 ou uma pasta para transcrição:")
+            instruction_label.setObjectName("InstructionLabel")
+            layout.addWidget(instruction_label)
 
             # Initialize file selection buttons
             button_layout = QHBoxLayout()
             self.select_file_button = QPushButton("Selecionar Arquivo")
             self.select_file_button.setIcon(QIcon("assets/icons/file.png"))
             self.select_file_button.clicked.connect(self.select_file)
-            self.select_file_button.setFixedSize(150, 40)  # Larger button size
+            self.select_file_button.setObjectName("PrimaryButton")
             button_layout.addWidget(self.select_file_button)
 
             self.select_folder_button = QPushButton("Selecionar Pasta")
             self.select_folder_button.setIcon(QIcon("assets/icons/folder.png"))
             self.select_folder_button.clicked.connect(self.select_folder)
-            self.select_folder_button.setFixedSize(150, 40)  # Larger button size
+            self.select_folder_button.setObjectName("PrimaryButton")
             button_layout.addWidget(self.select_folder_button)
 
             layout.addLayout(button_layout)
@@ -194,11 +234,13 @@ class MainWindow(QWidget):
             self.file_list = QListWidget()
             self.file_list.setContextMenuPolicy(Qt.CustomContextMenu)
             self.file_list.customContextMenuRequested.connect(self.show_context_menu)
+            self.file_list.setObjectName("FileList")
             layout.addWidget(self.file_list)
 
             # Initialize current file label
             self.current_file_label = QLabel("Arquivo atual: Nenhum")
             self.current_file_label.setAlignment(Qt.AlignCenter)
+            self.current_file_label.setObjectName("StatusLabel")
             layout.addWidget(self.current_file_label)
 
             # Initialize transcription control buttons
@@ -208,7 +250,6 @@ class MainWindow(QWidget):
             self.transcribe_button.setIcon(QIcon("assets/icons/start.png"))
             self.transcribe_button.setEnabled(False)
             self.transcribe_button.clicked.connect(self.start_transcription)
-            self.transcribe_button.setFixedSize(150, 40)  # Larger button size
             transcribe_layout.addWidget(self.transcribe_button)
 
             self.stop_button = QPushButton("Parar")
@@ -216,30 +257,35 @@ class MainWindow(QWidget):
             self.stop_button.setIcon(QIcon("assets/icons/stop.png"))
             self.stop_button.setEnabled(False)
             self.stop_button.clicked.connect(self.stop_transcription)
-            self.stop_button.setFixedSize(150, 40)  # Larger button size
             transcribe_layout.addWidget(self.stop_button)
             layout.addLayout(transcribe_layout)
 
             # Initialize progress bar
             self.progress = QProgressBar()
             self.progress.setValue(0)
+            self.progress.setObjectName("ProgressBar")
             layout.addWidget(self.progress)
 
             # Initialize elapsed time label
             self.elapsed_label = QLabel("Duração: 00:00:00")
             self.elapsed_label.setAlignment(Qt.AlignCenter)
+            self.elapsed_label.setObjectName("StatusLabel")
             layout.addWidget(self.elapsed_label)
 
             # Initialize status bar
             self.status_bar = QStatusBar()
+            self.status_bar.setObjectName("StatusBar")
             self.status_bar.showMessage(f"Modelo carregado: {SELECTED_MODEL} | Última atualização: --")
             self.status_bar.messageChanged.connect(self.handle_status_bar_click)
             layout.addWidget(self.status_bar)
 
             # Initialize background update checker
-            self.update_checker = BackgroundAppUpdateChecker()
-            self.update_checker.update_available.connect(self.notify_update_available)
-            self.update_checker.start()  # Start automatic update check
+            self.update_checker = None
+            if CHECK_FOR_UPDATES:
+                self.update_checker = BackgroundAppUpdateChecker()
+                self.update_checker.update_available.connect(self.notify_update_available)
+                self.update_checker.start()
+                debug_logger.debug("Started BackgroundAppUpdateChecker")
 
             # Initialize timer and state variables
             self.elapsed_timer = QTimer()
@@ -252,14 +298,17 @@ class MainWindow(QWidget):
             self.release_url = ""  # Store release URL for status bar click
 
             self.setLayout(layout)
-            logging.debug("MainWindow initialization completed")
+            app_logger.debug("MainWindow initialization completed")
+            debug_logger.debug("MainWindow setup finished")
         except Exception as e:
-            logging.error(f"Failed to initialize MainWindow: {e}", exc_info=True)
+            app_logger.error(f"Failed to initialize MainWindow: {e}", exc_info=True)
+            debug_logger.debug(f"MainWindow initialization error: {traceback.format_exc()}")
             raise
 
     def closeEvent(self, event) -> None:
         """Handle the window close event and log it."""
-        logging.debug("MainWindow closeEvent triggered")
+        app_logger.debug("MainWindow closeEvent triggered")
+        debug_logger.debug("Closing MainWindow")
         event.accept()
 
     def notify_update_available(self, version: str, release_url: str) -> None:
@@ -271,15 +320,19 @@ class MainWindow(QWidget):
         """
         self.release_url = release_url
         self.status_bar.showMessage(f"🔔 Atualização disponível: v{version}. Clique para baixar.")
+        app_logger.info(f"Update notification shown: v{version}")
+        debug_logger.debug(f"Update notification for version {version}, URL: {release_url}")
 
     def handle_status_bar_click(self, message: str) -> None:
         """Handle clicks on the status bar to open the release URL if an update is available."""
         if message.startswith("🔔 Atualização disponível") and self.release_url:
             try:
                 QDesktopServices.openUrl(QUrl(self.release_url))
-                logging.debug(f"Opened release URL: {self.release_url}")
+                app_logger.debug(f"Opened release URL: {self.release_url}")
+                debug_logger.debug(f"User clicked update link: {self.release_url}")
             except Exception as e:
-                logging.error(f"Failed to open release URL: {e}")
+                app_logger.error(f"Failed to open release URL: {e}")
+                debug_logger.debug(f"Error opening release URL: {str(e)}")
 
     def select_file(self) -> None:
         """Open a file dialog to select an MP3 file and update the transcription queue."""
@@ -293,6 +346,8 @@ class MainWindow(QWidget):
             self.transcribe_button.setEnabled(True)
             self.progress.setValue(0)
             self.current_file_label.setText("Arquivo atual: Nenhum")
+            app_logger.info(f"Selected file for transcription: {path}")
+            debug_logger.debug(f"Added file to queue: {path}")
 
     def select_folder(self) -> None:
         """Open a folder dialog to select a directory and add MP3 files to the transcription queue."""
@@ -310,6 +365,8 @@ class MainWindow(QWidget):
             self.transcribe_button.setEnabled(self.file_list.count() > 0)
             self.progress.setValue(0)
             self.current_file_label.setText("Arquivo atual: Nenhum")
+            app_logger.info(f"Selected folder for transcription: {folder}")
+            debug_logger.debug(f"Added {len(self.queued_files)} files from folder: {folder}")
 
     def show_context_menu(self, position: QPoint) -> None:
         """Display a context menu for the file list to allow removing queued files.
@@ -328,6 +385,7 @@ class MainWindow(QWidget):
         remove_action.triggered.connect(lambda: self.remove_from_queue(selected_file))
         menu.addAction(remove_action)
         menu.exec_(self.file_list.mapToGlobal(position))
+        debug_logger.debug(f"Showed context menu for file: {selected_file}")
 
     def remove_from_queue(self, file_path: str) -> None:
         """Remove a file from the transcription queue if it is not currently being processed.
@@ -341,7 +399,8 @@ class MainWindow(QWidget):
                 if self.file_list.item(index).text() == file_path:
                     self.file_list.takeItem(index)
                     break
-            logging.info(f"Removed {file_path} from queue")
+            app_logger.info(f"Removed {file_path} from queue")
+            debug_logger.debug(f"Removed file from queue: {file_path}")
             if not self.queued_files:
                 self.transcribe_button.setEnabled(False)
 
@@ -350,8 +409,11 @@ class MainWindow(QWidget):
         try:
             dialog = WordEditorDialog(self)
             dialog.exec_()
+            app_logger.info("Opened word editor dialog")
+            debug_logger.debug("WordEditorDialog shown")
         except Exception as e:
-            logging.error(f"Failed to open word editor: {e}")
+            app_logger.error(f"Failed to open word editor: {e}")
+            debug_logger.debug(f"Word editor error: {str(e)}")
             QMessageBox.critical(self, "Erro", "Não foi possível abrir o editor de palavras sensíveis.")
 
     def open_log_file(self) -> None:
@@ -360,18 +422,23 @@ class MainWindow(QWidget):
         try:
             if os.path.exists(log_file):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(log_file))
+                app_logger.info(f"Opened log file: {log_file}")
+                debug_logger.debug(f"Log file opened: {log_file}")
             else:
-                logging.warning("Log file does not exist")
+                app_logger.warning("Log file does not exist")
+                debug_logger.debug("Attempted to open non-existent log file")
                 QMessageBox.warning(self, "Aviso", "O arquivo de log não existe.")
         except Exception as e:
-            logging.error(f"Failed to open log file: {e}")
+            app_logger.error(f"Failed to open log file: {e}")
+            debug_logger.debug(f"Log file open error: {str(e)}")
             QMessageBox.critical(self, "Erro", "Não foi possível abrir o arquivo de log.")
 
     def backup_transcriptions(self) -> None:
         """Create a ZIP backup of all transcriptions in the output folder and delete the originals."""
         try:
             if not os.path.exists(OUTPUT_FOLDER):
-                logging.warning("Output folder does not exist")
+                app_logger.warning("Output folder does not exist")
+                debug_logger.debug("Backup attempted but output folder missing")
                 QMessageBox.warning(self, "Aviso", "Nenhuma transcrição encontrada para backup.")
                 return
 
@@ -381,7 +448,8 @@ class MainWindow(QWidget):
             files_to_backup = [f for f in os.listdir(OUTPUT_FOLDER) if f.endswith(".txt")]
 
             if not files_to_backup:
-                logging.warning("No transcription files found for backup")
+                app_logger.warning("No transcription files found for backup")
+                debug_logger.debug("No .txt files found in output folder for backup")
                 QMessageBox.warning(self, "Aviso", "Nenhuma transcrição encontrada para backup.")
                 return
 
@@ -394,10 +462,12 @@ class MainWindow(QWidget):
             for file_name in files_to_backup:
                 os.remove(os.path.join(OUTPUT_FOLDER, file_name))
 
-            logging.info(f"Created backup: {zip_path} and deleted original transcriptions")
+            app_logger.info(f"Created backup: {zip_path} and deleted original transcriptions")
+            debug_logger.debug(f"Backup created: {zip_path}, deleted {len(files_to_backup)} files")
             QMessageBox.information(self, "Sucesso", f"Backup criado em {zip_path}. Transcrições originais foram removidas.")
         except Exception as e:
-            logging.error(f"Failed to backup transcriptions: {e}")
+            app_logger.error(f"Failed to backup transcriptions: {e}")
+            debug_logger.debug(f"Backup error: {str(e)}")
             QMessageBox.critical(self, "Erro", "Não foi possível criar o backup das transcrições.")
 
     def open_settings_dialog(self) -> None:
@@ -405,8 +475,11 @@ class MainWindow(QWidget):
         try:
             dialog = SettingsDialog(self)
             dialog.exec_()
+            app_logger.info("Opened settings dialog")
+            debug_logger.debug("SettingsDialog shown")
         except Exception as e:
-            logging.error(f"Failed to open settings dialog: {e}")
+            app_logger.error(f"Failed to open settings dialog: {e}")
+            debug_logger.debug(f"Settings dialog error: {str(e)}")
             QMessageBox.critical(self, "Erro", "Não foi possível abrir as configurações.")
 
     def start_transcription(self) -> None:
@@ -419,6 +492,8 @@ class MainWindow(QWidget):
         self.status_bar.showMessage("Transcrição em andamento...")
         self.progress.setValue(0)
         self.current_file_label.setText("Arquivo atual: Iniciando...")
+        app_logger.info("Starting transcription process")
+        debug_logger.debug(f"Transcription started with {len(self.queued_files)} files")
 
         self.thread = TranscriptionThread(self.queued_files)
         self.thread.progress.connect(self.progress.setValue)
@@ -438,6 +513,8 @@ class MainWindow(QWidget):
         if self.current_file in self.queued_files:
             self.queued_files.remove(self.current_file)
             self.processed_files.append(self.current_file)
+        app_logger.debug(f"Updated current file: {file_name}")
+        debug_logger.debug(f"Current file set to: {file_name}, remaining queue: {self.queued_files}")
 
     def stop_transcription(self) -> None:
         """Cancel the ongoing transcription process and reset the UI."""
@@ -451,6 +528,8 @@ class MainWindow(QWidget):
         self.status_bar.showMessage("Transcrição cancelada")
         self.current_file_label.setText("Arquivo atual: Nenhum")
         self.current_file = None
+        app_logger.info("Transcription stopped by user")
+        debug_logger.debug("Transcription process cancelled")
 
     def update_elapsed_time(self) -> None:
         """Update the elapsed time display during transcription."""
@@ -458,6 +537,7 @@ class MainWindow(QWidget):
         hours, remainder = divmod(self.elapsed_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         self.elapsed_label.setText(f"Duração: {hours:02d}:{minutes:02d}:{seconds:02d}")
+        debug_logger.debug(f"Updated transcription elapsed time: {self.elapsed_seconds} seconds")
 
     def transcription_done(self, message: str, file_paths: list[str]) -> None:
         """Handle successful transcription completion and display a summary.
@@ -473,6 +553,8 @@ class MainWindow(QWidget):
         self.current_file_label.setText("Arquivo atual: Nenhum")
         self.current_file = None
         self.show_summary_panel(file_paths)
+        app_logger.info("Transcription completed successfully")
+        debug_logger.debug(f"Transcription finished, processed {len(file_paths)} files")
         QMessageBox.information(self, "Sucesso", message)
 
     def transcription_failed(self, file_path: str) -> None:
@@ -487,17 +569,27 @@ class MainWindow(QWidget):
         self.status_bar.showMessage("Erro na transcrição")
         self.current_file_label.setText("Arquivo atual: Nenhum")
         self.current_file = None
+        app_logger.error(f"Transcription failed for file: {file_path}")
+        debug_logger.debug(f"Transcription failure for: {file_path}")
         QMessageBox.critical(self, "Erro", f"Erro ao transcrever o arquivo: {file_path}")
 
     def open_help_link(self) -> None:
         """Open the application's online help page in the default web browser."""
-        QDesktopServices.openUrl(QUrl("https://github.com/andreipa/police-transcriber"))
+        url = "https://github.com/andreipa/police-transcriber"
+        try:
+            QDesktopServices.openUrl(QUrl(url))
+            app_logger.info("Opened help link")
+            debug_logger.debug(f"Opened help URL: {url}")
+        except Exception as e:
+            app_logger.error(f"Failed to open help link: {e}")
+            debug_logger.debug(f"Help link error: {str(e)}")
 
     def show_about(self) -> None:
         """Display an About dialog with the application logo, name, and version."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Sobre")
-        dialog.setFixedSize(300, 250)
+        dialog.setMinimumSize(300, 250)
+        dialog.setObjectName("AboutDialog")
 
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
@@ -506,13 +598,14 @@ class MainWindow(QWidget):
         pixmap = QPixmap("assets/images/splash.png")
         logo.setPixmap(pixmap.scaledToWidth(120, Qt.SmoothTransformation))
         logo.setAlignment(Qt.AlignCenter)
+        logo.setObjectName("AboutLogo")
 
         name_label = QLabel(APP_NAME)
-        name_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        name_label.setObjectName("AboutNameLabel")
         name_label.setAlignment(Qt.AlignCenter)
 
         version_label = QLabel(f"Versão: {VERSION}")
-        version_label.setStyleSheet("color: gray; font-size: 13px;")
+        version_label.setObjectName("AboutVersionLabel")
         version_label.setAlignment(Qt.AlignCenter)
 
         layout.addWidget(logo)
@@ -520,8 +613,15 @@ class MainWindow(QWidget):
         layout.addWidget(name_label)
         layout.addWidget(version_label)
 
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok)
+        button_box.setObjectName("AboutButtonBox")
+        button_box.accepted.connect(dialog.accept)
+        layout.addWidget(button_box)
+
         dialog.setLayout(layout)
         dialog.exec_()
+        app_logger.info("Showed About dialog")
+        debug_logger.debug("About dialog displayed")
 
     def show_summary_panel(self, file_paths: list[str]) -> None:
         """Display a dialog summarizing the transcription results for processed files.
@@ -533,6 +633,7 @@ class MainWindow(QWidget):
             dialog = QDialog(self)
             dialog.setWindowTitle("Resumo da Transcrição")
             dialog.setMinimumWidth(500)
+            dialog.setObjectName("SummaryDialog")
 
             layout = QVBoxLayout(dialog)
             layout.addWidget(QLabel(f"<b>Resumo de {len(file_paths)} arquivo(s) transcrito(s):</b>"))
@@ -540,6 +641,8 @@ class MainWindow(QWidget):
             for file_path in file_paths:
                 txt_path = Path(OUTPUT_FOLDER) / (Path(file_path).stem + "-" + datetime.now().strftime("%d-%m-%Y") + ".txt")
                 if not txt_path.exists():
+                    app_logger.warning(f"Transcription file not found: {txt_path}")
+                    debug_logger.debug(f"Missing transcription file: {txt_path}")
                     continue
 
                 with open(txt_path, "r", encoding="utf-8") as file:
@@ -549,17 +652,25 @@ class MainWindow(QWidget):
                 word_count = sum(1 for line in lines if line.strip() and not line.startswith("Nenhuma"))
 
                 file_layout = QHBoxLayout()
-                file_layout.addWidget(QLabel(f"{os.path.basename(file_path)}: {word_count} palavras sensíveis"))
+                file_label = QLabel(f"{os.path.basename(file_path)}: {word_count} palavras sensíveis")
+                file_label.setObjectName("SummaryLabel")
+                file_layout.addWidget(file_label)
                 open_button = QPushButton("Abrir")
-                open_button.setFixedSize(100, 40)  # Consistent with larger button sizes
-                open_button.clicked.connect(lambda _, path=str(txt_path.resolve()): QDesktopServices.openUrl(QUrl.fromLocalFile(path)))
+                open_button.setObjectName("PrimaryButton")
+                open_button.clicked.connect(
+                    lambda _, path=str(txt_path.resolve()): QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+                )
                 file_layout.addWidget(open_button)
                 layout.addLayout(file_layout)
 
             button_box = QDialogButtonBox(QDialogButtonBox.Ok)
+            button_box.setObjectName("SummaryButtonBox")
             button_box.accepted.connect(dialog.accept)
             layout.addWidget(button_box)
 
             dialog.exec_()
+            app_logger.info(f"Showed transcription summary for {len(file_paths)} files")
+            debug_logger.debug(f"Displayed summary dialog for files: {file_paths}")
         except Exception as e:
-            logging.error(f"Failed to display transcription summary: {e}")
+            app_logger.error(f"Failed to display transcription summary: {e}")
+            debug_logger.debug(f"Summary dialog error: {str(e)}")

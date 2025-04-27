@@ -1,4 +1,7 @@
 {
-  "selected_model": "large-v2",
-  "logging_level": "DEBUG"
+    "selected_model": "large-v2",
+    "logging_level": "DEBUG",
+    "verbose": true,
+    "output_folder": "/Users/andreiandrade/PycharmProjects/PoliceTranscriber/output",
+    "check_for_updates": true
 }
