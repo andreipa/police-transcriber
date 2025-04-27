@@ -8,7 +8,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any
 
 # Application metadata
 APP_NAME = "Police Transcriber"
@@ -58,6 +58,7 @@ DEFAULT_CONFIG = {
     "logging_level": "ERROR",
     "verbose": True,
     "output_folder": "c:/PoliceTranscriber/Output/" if os.name == "nt" else "/Users/PoliceTranscriber/Output/",
+    "check_for_updates": True,
 }
 """Default configuration settings."""
 
@@ -65,8 +66,8 @@ DEFAULT_CONFIG = {
 VALID_MODELS = list(AVAILABLE_MODELS.keys())
 """List of valid model names."""
 
-VALID_LOGGING_LEVELS = ["WARNING", "ERROR", "INFO", "ALL"]
-"""List of valid logging levels."""
+VALID_LOGGING_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+"""List of valid logging levels: DEBUG (10), INFO (20), WARNING (30), ERROR (40), CRITICAL (50)."""
 
 # Logging configuration
 LOG_FOLDER = "logs"
@@ -90,11 +91,14 @@ debug_logger.addHandler(debug_handler)
 debug_logger.setLevel(logging.DEBUG)  # Debug logger always logs at DEBUG level
 
 
-def load_config() -> Dict[str, any]:
+def load_config() -> Dict[str, Any]:
     """Load configuration from config.json, creating it with defaults if it doesn't exist.
 
     Returns:
         A dictionary with configuration settings.
+
+    Note:
+        Must be called before using app_logger or debug_logger to ensure proper configuration.
     """
     if not os.path.exists(CONFIG_FILE):
         save_config(**DEFAULT_CONFIG)
@@ -113,7 +117,7 @@ def load_config() -> Dict[str, any]:
         return DEFAULT_CONFIG
 
 
-def validate_config(config: Dict[str, any]) -> Dict[str, any]:
+def validate_config(config: Dict[str, Any]) -> Dict[str, Any]:
     """Validate the configuration and return a corrected version if necessary.
 
     Args:
@@ -152,6 +156,13 @@ def validate_config(config: Dict[str, any]) -> Dict[str, any]:
         # Ensure the output folder exists
         Path(output_folder).mkdir(parents=True, exist_ok=True)
 
+    # Validate check_for_updates
+    if not isinstance(validated_config.get("check_for_updates"), bool):
+        app_logger.warning(
+            f"Invalid check_for_updates value: {validated_config.get('check_for_updates')}. Using default: {DEFAULT_CONFIG['check_for_updates']}"
+        )
+        validated_config["check_for_updates"] = DEFAULT_CONFIG["check_for_updates"]
+
     return validated_config
 
 
@@ -160,41 +171,45 @@ def save_config(
         logging_level: str = DEFAULT_CONFIG["logging_level"],
         verbose: bool = DEFAULT_CONFIG["verbose"],
         output_folder: str = DEFAULT_CONFIG["output_folder"],
+        check_for_updates: bool = DEFAULT_CONFIG["check_for_updates"],
 ) -> None:
     """Save configuration to config.json.
 
     Args:
         selected_model: The selected Whisper model.
-        logging_level: The logging level.
-        verbose: Whether to enable verbose logging.
+        logging_level: The logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+        verbose: Whether to enable verbose logging to debug.log.
         output_folder: The output folder for transcriptions.
+        check_for_updates: Whether to check for application updates on startup.
     """
     config = {
         "selected_model": selected_model,
         "logging_level": logging_level,
         "verbose": verbose,
         "output_folder": output_folder,
+        "check_for_updates": check_for_updates,
     }
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as file:
             json.dump(config, file, indent=4)
         update_logging(logging_level, verbose)
     except Exception as e:
-        repr(app_logger.error(f"Failed to save config: {e}"))
+        app_logger.error(f"Failed to save config: {e}")
 
 
 def update_logging(logging_level: str, verbose: bool) -> None:
     """Update logging configuration based on logging_level and verbose settings.
 
     Args:
-        logging_level: The logging level ('WARNING', 'ERROR', 'INFO', 'ALL').
-        verbose: Whether verbose logging is enabled.
+        logging_level: The logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+        verbose: Whether verbose logging is enabled (writes to debug.log).
     """
     level_map = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
         "WARNING": logging.WARNING,
         "ERROR": logging.ERROR,
-        "INFO": logging.INFO,
-        "ALL": logging.DEBUG,
+        "CRITICAL": logging.CRITICAL,
     }
     app_logger.setLevel(level_map[logging_level])
 
@@ -219,6 +234,9 @@ VERBOSE = config["verbose"]
 OUTPUT_FOLDER = config["output_folder"]
 """Directory where transcription output files are saved."""
 
+CHECK_FOR_UPDATES = config["check_for_updates"]
+"""Whether to check for application updates on startup."""
+
 # Model-related settings
 LOCAL_MODEL_PATH = os.path.join("models", SELECTED_MODEL)
 """Local directory containing the selected Whisper model's files."""
@@ -234,7 +252,7 @@ GITHUB_REPO = "andreipa/police-transcriber"
 """GitHub repository for checking application updates."""
 
 GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-"""URL11 for fetching the latest release information from GitHub."""
+"""URL for fetching the latest release information from GitHub."""
 
 # Transcription configuration
 SENSITIVE_WORDS_FILE = os.path.join("data", "sensible_words.txt")
