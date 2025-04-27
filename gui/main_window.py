@@ -5,6 +5,7 @@
 """Main application window for the Police Transcriber, providing a GUI for audio transcription."""
 
 import os
+import traceback
 from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile
@@ -136,7 +137,7 @@ class BackgroundAppUpdateChecker(QThread):
             response.raise_for_status()
             data = response.json()
             latest_version = data.get("tag_name", "").lstrip("v")
-            release_url = data.get("html_url", "https://github.com/andreipa/police-transcriber/releases")
+            release_url = data.get("html_url", "")
             if latest_version and version.parse(latest_version) > version.parse(VERSION):
                 app_logger.info(f"New version available: {latest_version}")
                 debug_logger.debug(f"Update check found new version: {latest_version}, URL: {release_url}")
@@ -319,7 +320,7 @@ class MainWindow(QWidget):
             release_url: The URL of the GitHub release page.
         """
         self.release_url = release_url
-        self.status_bar.showMessage(f"🔔 Atualização disponível: v{version}. Clique para baixar.")
+        self.status_bar.showMessage(f"🔔 Atualização disponível: v{version}. Clique aqui para baixar.")
         app_logger.info(f"Update notification shown: v{version}")
         debug_logger.debug(f"Update notification for version {version}, URL: {release_url}")
 
@@ -328,7 +329,7 @@ class MainWindow(QWidget):
         if message.startswith("🔔 Atualização disponível") and self.release_url:
             try:
                 QDesktopServices.openUrl(QUrl(self.release_url))
-                app_logger.debug(f"Opened release URL: {self.release_url}")
+                app_logger.info(f"Opened release URL: {self.release_url}")
                 debug_logger.debug(f"User clicked update link: {self.release_url}")
             except Exception as e:
                 app_logger.error(f"Failed to open release URL: {e}")

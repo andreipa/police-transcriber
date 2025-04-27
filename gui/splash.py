@@ -34,16 +34,18 @@ class SplashScreen(QWidget):
 
         # Load and scale the splash image
         splash_path = os.path.join("assets", "images", "splash.png")
-        pixmap = QPixmap(splash_path)
-        scaled_pixmap = pixmap.scaledToWidth(300, Qt.SmoothTransformation)
         logo = QLabel()
-        logo.setPixmap(scaled_pixmap)
-        logo.setAlignment(Qt.AlignCenter)
-        logo.setObjectName("SplashLogo")
-        if not os.path.exists(splash_path):
+        if os.path.exists(splash_path):
+            pixmap = QPixmap(splash_path)
+            scaled_pixmap = pixmap.scaledToWidth(300, Qt.SmoothTransformation)
+            logo.setPixmap(scaled_pixmap)
+            debug_logger.debug(f"Loaded splash image: {splash_path}")
+        else:
             app_logger.error(f"Splash image not found: {splash_path}")
             debug_logger.debug(f"Missing splash image: {splash_path}")
             logo.setText("Logo não encontrado")
+        logo.setAlignment(Qt.AlignCenter)
+        logo.setObjectName("SplashLogo")
 
         # Application name label
         app_name_label = QLabel(APP_NAME)
@@ -67,7 +69,8 @@ class SplashScreen(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setTextVisible(True)  # Show percentage
+        self.progress_bar.setFormat("%p%")  # Display percentage (e.g., "50%")
         self.progress_bar.setFixedWidth(300)
         self.progress_bar.setObjectName("SplashProgressBar")
 
@@ -103,7 +106,7 @@ class SplashScreen(QWidget):
         debug_logger.debug(f"Set splash message to: {message}")
 
     def setProgress(self, value: int) -> None:
-        """Set the progress bar value.
+        """Set the progress bar value and update the percentage display.
 
         Args:
             value: The progress percentage (0-100).
@@ -111,4 +114,4 @@ class SplashScreen(QWidget):
         self.progress_bar.setValue(value)
         QCoreApplication.processEvents(QEventLoop.AllEvents, 100)
         app_logger.debug(f"Splash screen progress updated: {value}%")
-        debug_logger.debug(f"Set splash progress to: {value}")
+        debug_logger.debug(f"Set splash progress to: {value}%")

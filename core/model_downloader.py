@@ -161,6 +161,7 @@ def download_model(progress_callback: Optional[Callable[[int], None]] = None) ->
         return False
 
 
+# In model_downloader.py, modify ensure_model_available
 def ensure_model_available(
         on_status: Optional[Callable[[str], None]] = None,
         on_progress: Optional[Callable[[int], None]] = None,
@@ -182,6 +183,19 @@ def ensure_model_available(
             app_logger.info(f"Model {SELECTED_MODEL} already available and verified")
             debug_logger.debug("Model files verified, no download needed")
             return True
+
+        # Optional: Uncomment for confirmation dialog
+        # if SELECTED_MODEL == "large-v2":
+        #     from PyQt5.QtWidgets import QMessageBox
+        #     reply = QMessageBox.question(
+        #         None, "Confirmar Download",
+        #         "O modelo large-v2 requer 3.09 GB. Deseja baixar agora?",
+        #         QMessageBox.Yes | QMessageBox.No
+        #     )
+        #     if reply == QMessageBox.No:
+        #         app_logger.info("User cancelled large-v2 model download")
+        #         debug_logger.debug("Download cancelled by user")
+        #         return False
 
         if on_status:
             on_status(f"Baixando modelo {SELECTED_MODEL}...")

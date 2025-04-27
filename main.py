@@ -3,10 +3,12 @@
 #  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
 
 """Main entry point for the Police Transcriber application."""
+
 import os
 import sys
 import traceback
 from datetime import datetime
+from pathlib import Path
 
 from PyQt5.QtCore import QTimer, QtMsgType, qInstallMessageHandler
 from PyQt5.QtWidgets import QApplication, QMessageBox, QFileDialog
@@ -91,6 +93,37 @@ def prompt_output_folder(parent) -> str:
     return OUTPUT_FOLDER
 
 
+def load_stylesheet(app: QApplication) -> None:
+    """Load and apply the stylesheet from assets/styles.qss.
+
+    Args:
+        app: The QApplication instance to apply the stylesheet to.
+    """
+    try:
+        # Get the directory of the current script or executable
+        if getattr(sys, 'frozen', False):
+            # Running as a packaged executable (e.g., PyInstaller)
+            base_path = Path(sys.executable).parent
+        else:
+            # Running from source
+            base_path = Path(__file__).parent
+
+        stylesheet_path = base_path / "assets" / "styles" / "styles.qss"
+        if not stylesheet_path.exists():
+            app_logger.warning(f"Stylesheet not found at {stylesheet_path}")
+            debug_logger.debug(f"Missing stylesheet: {stylesheet_path}")
+            return
+
+        with open(stylesheet_path, 'r', encoding='utf-8') as file:
+            stylesheet = file.read()
+            app.setStyleSheet(stylesheet)
+            app_logger.debug(f"Loaded stylesheet from {stylesheet_path}")
+            debug_logger.debug("Stylesheet applied successfully")
+    except Exception as e:
+        app_logger.warning(f"Failed to load stylesheet: {e}")
+        debug_logger.debug(f"Stylesheet loading error: {str(e)}")
+
+
 def main() -> None:
     """Initialize the application, check model availability, and display the main window."""
     # Load configuration
@@ -105,13 +138,7 @@ def main() -> None:
 
     # Initialize QApplication and load stylesheet
     app = QApplication(sys.argv)
-    try:
-        with open("styles.qss", "r") as f:
-            app.setStyleSheet(f.read())
-        debug_logger.debug("Loaded styles.qss")
-    except Exception as e:
-        app_logger.error(f"Failed to load styles.qss: {e}")
-        debug_logger.debug(f"Stylesheet loading error: {str(e)}")
+    load_stylesheet(app)
     debug_logger.debug("QApplication initialized")
 
     # Configure Qt logging for debugging
