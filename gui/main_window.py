@@ -5,6 +5,7 @@
 """Main application window for the Police Transcriber, providing a GUI for audio transcription."""
 
 import os
+import traceback
 from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile
@@ -136,7 +137,7 @@ class BackgroundAppUpdateChecker(QThread):
             response.raise_for_status()
             data = response.json()
             latest_version = data.get("tag_name", "").lstrip("v")
-            release_url = data.get("html_url", "https://github.com/andreipa/police-transcriber/releases")
+            release_url = data.get("html_url", "")
             if latest_version and version.parse(latest_version) > version.parse(VERSION):
                 app_logger.info(f"New version available: {latest_version}")
                 debug_logger.debug(f"Update check found new version: {latest_version}, URL: {release_url}")
@@ -147,6 +148,23 @@ class BackgroundAppUpdateChecker(QThread):
         except requests.RequestException as e:
             app_logger.warning(f"Failed to check for application updates: {e}")
             debug_logger.debug(f"Update check error: {str(e)}")
+
+
+class ClickableStatusBar(QStatusBar):
+    """A custom QStatusBar that emits a signal when clicked."""
+
+    clicked = pyqtSignal()
+    """Signal emitted when the status bar is clicked."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("StatusBar")
+
+    def mousePressEvent(self, event):
+        """Handle mouse press events to emit the clicked signal."""
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
 
 
 class MainWindow(QWidget):
@@ -273,10 +291,10 @@ class MainWindow(QWidget):
             layout.addWidget(self.elapsed_label)
 
             # Initialize status bar
-            self.status_bar = QStatusBar()
-            self.status_bar.setObjectName("StatusBar")
+            self.status_bar = ClickableStatusBar()
             self.status_bar.showMessage(f"Modelo carregado: {SELECTED_MODEL} | Última atualização: --")
-            self.status_bar.messageChanged.connect(self.handle_status_bar_click)
+            self.status_bar.clicked.connect(self.handle_status_bar_click)
+            self.status_bar.messageChanged.connect(self.update_status_bar_cursor)
             layout.addWidget(self.status_bar)
 
             # Initialize background update checker
@@ -319,16 +337,31 @@ class MainWindow(QWidget):
             release_url: The URL of the GitHub release page.
         """
         self.release_url = release_url
-        self.status_bar.showMessage(f"🔔 Atualização disponível: v{version}. Clique para baixar.")
+        self.status_bar.showMessage(f"🔔 New version v{version} available! Click to download.")
+        self.status_bar.setToolTip(f"A new version (v{version}) is available. Click to visit the download page.")
+        self.status_bar.setCursor(Qt.PointingHandCursor)
         app_logger.info(f"Update notification shown: v{version}")
         debug_logger.debug(f"Update notification for version {version}, URL: {release_url}")
 
-    def handle_status_bar_click(self, message: str) -> None:
+    def update_status_bar_cursor(self, message: str) -> None:
+        """Update the status bar cursor based on the current message.
+
+        Args:
+            message: The current status bar message.
+        """
+        if message.startswith("🔔 New version"):
+            self.status_bar.setCursor(Qt.PointingHandCursor)
+        else:
+            self.status_bar.setCursor(Qt.ArrowCursor)
+        debug_logger.debug(f"Status bar cursor updated for message: {message}")
+
+    def handle_status_bar_click(self) -> None:
         """Handle clicks on the status bar to open the release URL if an update is available."""
-        if message.startswith("🔔 Atualização disponível") and self.release_url:
+        message = self.status_bar.currentMessage()
+        if message.startswith("🔔 New version") and self.release_url:
             try:
                 QDesktopServices.openUrl(QUrl(self.release_url))
-                app_logger.debug(f"Opened release URL: {self.release_url}")
+                app_logger.info(f"Opened release URL: {self.release_url}")
                 debug_logger.debug(f"User clicked update link: {self.release_url}")
             except Exception as e:
                 app_logger.error(f"Failed to open release URL: {e}")
