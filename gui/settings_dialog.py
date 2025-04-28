@@ -1,17 +1,22 @@
+# -*- coding: utf-8 -*-
 #  Copyright (c) 2025. TechDev Andrade Ltda.
 #  All rights reserved.
 #  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
 
 """Settings dialog for configuring the Police Transcriber application."""
 
+import os
+from pathlib import Path
+
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QDialogButtonBox,
     QFileDialog,
     QFormLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -43,39 +48,60 @@ class SettingsDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle("Configurações")
-        self.setMinimumSize(450, 550)  # Adjusted for content and readability
+        self.setMinimumSize(500, 450)  # Compact size for better focus
         self.setObjectName("SettingsDialog")  # For stylesheet targeting
         app_logger.debug("Initializing SettingsDialog")
         debug_logger.debug("Starting SettingsDialog setup")
 
         # Main layout
         layout = QVBoxLayout()
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(8)  # Windows 11 8px grid
+        layout.setContentsMargins(12, 12, 12, 12)
 
-        # Form layout for settings
-        form_layout = QFormLayout()
-        form_layout.setLabelAlignment(Qt.AlignRight)
-        form_layout.setFormAlignment(Qt.AlignLeft)
-        form_layout.setSpacing(12)
-        form_layout.setContentsMargins(0, 0, 0, 10)
+        # Header: Configurações de Transcrição
+        transcription_header = QLabel("Configurações de Transcrição")
+        transcription_header.setObjectName("SettingsLabel")
+        layout.addWidget(transcription_header)
+
+        # Form layout for transcription settings
+        transcription_form = QFormLayout()
+        transcription_form.setLabelAlignment(Qt.AlignRight)
+        transcription_form.setFormAlignment(Qt.AlignLeft)
+        transcription_form.setSpacing(8)
+        transcription_form.setContentsMargins(0, 0, 0, 8)
 
         # Model selection
-        model_label = QLabel("Modelo de Transcrição:")
+        model_label = QLabel("Modelo:")
         model_label.setObjectName("SettingsLabel")
         self.model_combo = QComboBox()
         self.model_combo.addItems(AVAILABLE_MODELS.keys())
         self.model_combo.setCurrentText(SELECTED_MODEL)
         self.model_combo.setObjectName("SettingsComboBox")
-        form_layout.addRow(model_label, self.model_combo)
+        self.model_combo.setMaximumWidth(300)
+        self.model_combo.setToolTip("Selecione o modelo de transcrição a ser usado.")
+        transcription_form.addRow(model_label, self.model_combo)
 
         # Model description
         self.model_description = QLabel(self.get_model_description(SELECTED_MODEL))
         self.model_description.setWordWrap(True)
         self.model_description.setObjectName("SettingsDescription")
-        self.model_description.setMinimumHeight(60)
-        form_layout.addRow("", self.model_description)
+        self.model_description.setMaximumWidth(300)
+        transcription_form.addRow("", self.model_description)
         self.model_combo.currentTextChanged.connect(self.update_model_description)
+
+        layout.addLayout(transcription_form)
+
+        # Header: Logging
+        logging_header = QLabel("Logging")
+        logging_header.setObjectName("SettingsLabel")
+        layout.addWidget(logging_header)
+
+        # Form layout for logging settings
+        logging_form = QFormLayout()
+        logging_form.setLabelAlignment(Qt.AlignRight)
+        logging_form.setFormAlignment(Qt.AlignLeft)
+        logging_form.setSpacing(8)
+        logging_form.setContentsMargins(0, 0, 0, 8)
 
         # Logging level
         logging_label = QLabel("Nível de Log:")
@@ -84,6 +110,7 @@ class SettingsDialog(QDialog):
         self.logging_combo.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
         self.logging_combo.setCurrentText(LOGGING_LEVEL)
         self.logging_combo.setObjectName("SettingsComboBox")
+        self.logging_combo.setMaximumWidth(300)
         self.logging_combo.setToolTip(
             "Nível de log para app.log:\n"
             "- DEBUG: Todos os detalhes (desenvolvimento).\n"
@@ -92,7 +119,7 @@ class SettingsDialog(QDialog):
             "- ERROR: Erros recuperáveis (padrão).\n"
             "- CRITICAL: Erros graves que param o aplicativo."
         )
-        form_layout.addRow(logging_label, self.logging_combo)
+        logging_form.addRow(logging_label, self.logging_combo)
 
         # Verbose logging
         self.verbose_checkbox = QCheckBox("Habilitar Log Detalhado (debug.log)")
@@ -102,7 +129,21 @@ class SettingsDialog(QDialog):
             "Habilita logs detalhados em logs/debug.log para depuração. "
             "Útil para diagnosticar problemas, mas pode gerar arquivos grandes."
         )
-        form_layout.addRow("", self.verbose_checkbox)
+        logging_form.addRow("", self.verbose_checkbox)
+
+        layout.addLayout(logging_form)
+
+        # Header: Saída e Atualizações
+        output_header = QLabel("Saída e Atualizações")
+        output_header.setObjectName("SettingsLabel")
+        layout.addWidget(output_header)
+
+        # Form layout for output and updates
+        output_form = QFormLayout()
+        output_form.setLabelAlignment(Qt.AlignRight)
+        output_form.setFormAlignment(Qt.AlignLeft)
+        output_form.setSpacing(8)
+        output_form.setContentsMargins(0, 0, 0, 8)
 
         # Output folder
         output_label = QLabel("Pasta de Saída:")
@@ -110,14 +151,18 @@ class SettingsDialog(QDialog):
         self.output_line_edit = QLineEdit(OUTPUT_FOLDER)
         self.output_line_edit.setReadOnly(True)
         self.output_line_edit.setObjectName("SettingsLineEdit")
+        self.output_line_edit.setMaximumWidth(300)
         self.output_line_edit.setToolTip("Pasta onde as transcrições serão salvas.")
         output_button = QPushButton("Selecionar")
-        output_button.setObjectName("PrimaryButton")  # Changed to PrimaryButton for consistency
+        output_button.setObjectName("PrimaryButton")
+        output_button.setMaximumWidth(150)
+        output_button.setIcon(QIcon("assets/icons/folder.png"))  # Added icon for clarity
         output_button.clicked.connect(self.select_output_folder)
-        output_layout = QVBoxLayout()
+        output_layout = QHBoxLayout()
+        output_layout.setSpacing(8)
         output_layout.addWidget(self.output_line_edit)
         output_layout.addWidget(output_button)
-        form_layout.addRow(output_label, output_layout)
+        output_form.addRow(output_label, output_layout)
 
         # Check for updates
         self.updates_checkbox = QCheckBox("Verificar Atualizações ao Iniciar")
@@ -126,28 +171,40 @@ class SettingsDialog(QDialog):
         self.updates_checkbox.setToolTip(
             "Verifica automaticamente se há novas versões do aplicativo ao iniciar."
         )
-        form_layout.addRow("", self.updates_checkbox)
+        output_form.addRow("", self.updates_checkbox)
 
-        # Add form to main layout
-        layout.addLayout(form_layout)
+        layout.addLayout(output_form)
 
         # Status label for feedback
         self.status_label = QLabel("")
         self.status_label.setObjectName("SettingsStatusLabel")
         self.status_label.setWordWrap(True)
         self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setMinimumHeight(30)
+        self.status_label.setMaximumWidth(300)
         layout.addWidget(self.status_label)
 
         # Buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        button_box.setObjectName("SettingsButtonBox")
-        ok_button = button_box.button(QDialogButtonBox.Ok)
-        ok_button.setObjectName("PrimaryButton")
-        cancel_button = button_box.button(QDialogButtonBox.Cancel)
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(8)
+        button_layout.setAlignment(Qt.AlignRight)
+        save_button = QPushButton("Salvar")
+        save_button.setObjectName("PrimaryButton")
+        save_button.setMinimumWidth(100)
+        save_button.clicked.connect(self.accept)
+        cancel_button = QPushButton("Cancelar")
         cancel_button.setObjectName("SettingsButton")
-        button_box.accepted.connect(self.accept)
-        button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
+        cancel_button.setMinimumWidth(100)
+        cancel_button.clicked.connect(self.reject)
+        restore_button = QPushButton("Restaurar Padrões")
+        restore_button.setObjectName("SettingsButton")
+        restore_button.setMinimumWidth(100)
+        restore_button.setToolTip("Restaura as configurações para os valores padrão.")
+        restore_button.clicked.connect(self.restore_defaults)
+        button_layout.addWidget(restore_button)
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
 
         self.setLayout(layout)
         app_logger.debug("SettingsDialog initialization completed")
@@ -193,8 +250,33 @@ class SettingsDialog(QDialog):
             app_logger.info(f"Selected output folder: {folder}")
             debug_logger.debug(f"Output folder selection changed to: {folder}")
 
+    def restore_defaults(self) -> None:
+        """Restore settings to their default values."""
+        try:
+            self.model_combo.setCurrentText("medium")  # Balanced default
+            self.logging_combo.setCurrentText("ERROR")  # Standard for production
+            self.verbose_checkbox.setChecked(False)  # Minimize logging
+            self.output_line_edit.setText(os.path.expanduser("~/PoliceTranscriber/output"))  # User-specific default
+            self.updates_checkbox.setChecked(True)  # Encourage updates
+            self.update_model_description("medium")
+            self.status_label.setText("Configurações restauradas!")
+            self.status_label.setProperty("error", False)
+            self.status_label.style().unpolish(self.status_label)
+            self.status_label.style().polish(self.status_label)
+            app_logger.info("Restored default settings")
+            debug_logger.debug("Default settings restored: model=medium, logging_level=ERROR, verbose=False, "
+                               "output_folder=~/PoliceTranscriber/output, check_for_updates=True")
+        except Exception as e:
+            app_logger.error(f"Failed to restore default settings: {e}")
+            self.status_label.setText("Erro ao restaurar configurações.")
+            self.status_label.setProperty("error", True)
+            self.status_label.style().unpolish(self.status_label)
+            self.status_label.style().polish(self.status_label)
+            debug_logger.debug(f"Failed to restore defaults: {str(e)}")
+            QMessageBox.critical(self, "Erro", "Falha ao restaurar configurações padrão.")
+
     def accept(self) -> None:
-        """Save settings when the OK button is clicked."""
+        """Save settings when the Salvar button is clicked."""
         try:
             selected_model = self.model_combo.currentText()
             logging_level = self.logging_combo.currentText()
@@ -241,7 +323,7 @@ class SettingsDialog(QDialog):
             QMessageBox.critical(self, "Erro", "Falha ao salvar configurações. Verifique os logs para detalhes.")
 
     def reject(self) -> None:
-        """Handle the Cancel button click."""
+        """Handle the Cancelar button click."""
         self.status_label.setText("")
         app_logger.debug("SettingsDialog cancelled")
         debug_logger.debug("User cancelled SettingsDialog")

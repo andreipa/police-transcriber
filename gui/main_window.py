@@ -213,9 +213,13 @@ class MainWindow(QWidget):
             backup_transcriptions_action = QAction(QIcon("assets/icons/backup.png"), u"Fazer Backup das Transcrições...", self)
             backup_transcriptions_action.triggered.connect(self.backup_transcriptions)
             tools_menu.addAction(backup_transcriptions_action)
-            open_log_action = QAction(QIcon("assets/icons/bug_report.png"), u"Abrir Log", self)
+            open_log_action = QAction(QIcon("assets/icons/log.png"), u"Abrir Log", self)
             open_log_action.triggered.connect(self.open_log_file)
             tools_menu.addAction(open_log_action)
+            open_debug_log_action = QAction(QIcon("assets/icons/bug_report.png"), u"Abrir Debug Log", self)
+            open_debug_log_action.triggered.connect(self.open_debug_log_file)
+            tools_menu.addAction(open_debug_log_action)
+            tools_menu.addSeparator()
             settings_action = QAction(QIcon("assets/icons/settings.png"), u"Opções...", self)
             settings_action.triggered.connect(self.open_settings_dialog)
             tools_menu.addAction(settings_action)
@@ -513,6 +517,23 @@ class MainWindow(QWidget):
             app_logger.error(f"Failed to backup transcriptions: {e}")
             debug_logger.debug(f"Backup error: {str(e)}")
             QMessageBox.critical(self, "Erro", "Não foi possível criar o backup das transcrições.")
+
+    def open_debug_log_file(self) -> None:
+        """Open the debug log file in the default text editor."""
+        debug_log_file = os.path.join(LOG_FOLDER, "debug.log")
+        try:
+            if os.path.exists(debug_log_file):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(debug_log_file))
+                app_logger.info(f"Opened debug log file: {debug_log_file}")
+                debug_logger.debug(f"Debug log file opened: {debug_log_file}")
+            else:
+                app_logger.warning("Debug log file does not exist")
+                debug_logger.debug("Attempted to open non-existent debug log file")
+                QMessageBox.warning(self, "Aviso", "O arquivo de debug log não existe.")
+        except Exception as e:
+            app_logger.error(f"Failed to open debug log file: {e}")
+            debug_logger.debug(f"Debug log file open error: {str(e)}")
+            QMessageBox.critical(self, "Erro", "Não foi possível abrir o arquivo de debug log.")
 
     def open_settings_dialog(self) -> None:
         """Open the settings dialog to configure application options."""
