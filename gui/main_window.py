@@ -182,17 +182,17 @@ class MainWindow(QWidget):
 
             layout = QVBoxLayout()
             layout.setAlignment(Qt.AlignTop)
-            layout.setSpacing(10)
-            layout.setContentsMargins(10, 10, 10, 10)
+            layout.setSpacing(8)  # Windows 11 8px grid
+            layout.setContentsMargins(8, 8, 8, 8)
 
             # Initialize menu bar
             menu_bar = QMenuBar(self)
             menu_bar.setObjectName("MenuBar")
             file_menu = menu_bar.addMenu("Arquivo")
-            open_file_action = QAction(QIcon("assets/icons/file.png"), "Selecionar Arquivo", self)
+            open_file_action = QAction(QIcon("assets/icons/audio_file.png"), "Selecionar Arquivo", self)
             open_file_action.triggered.connect(self.select_file)
             file_menu.addAction(open_file_action)
-            open_folder_action = QAction(QIcon("assets/icons/folder.png"), "Selecionar Pasta", self)
+            open_folder_action = QAction(QIcon("assets/icons/library_music.png"), "Selecionar Pasta", self)
             open_folder_action.triggered.connect(self.select_folder)
             file_menu.addAction(open_folder_action)
             file_menu.addSeparator()
@@ -204,7 +204,7 @@ class MainWindow(QWidget):
             edit_words_action = QAction(QIcon("assets/icons/edit.png"), "Editar Palavras Sensíveis", self)
             edit_words_action.triggered.connect(self.open_word_editor)
             tools_menu.addAction(edit_words_action)
-            open_log_action = QAction(QIcon("assets/icons/log.png"), "Abrir Log", self)
+            open_log_action = QAction(QIcon("assets/icons/bug_report.png"), "Abrir Log", self)
             open_log_action.triggered.connect(self.open_log_file)
             tools_menu.addAction(open_log_action)
             backup_transcriptions_action = QAction(QIcon("assets/icons/backup.png"), "Fazer Backup das Transcrições", self)
@@ -234,14 +234,15 @@ class MainWindow(QWidget):
 
             # Initialize file selection buttons
             button_layout = QHBoxLayout()
+            button_layout.setSpacing(8)
             self.select_file_button = QPushButton("Selecionar Arquivo")
-            self.select_file_button.setIcon(QIcon("assets/icons/file.png"))
+            self.select_file_button.setIcon(QIcon("assets/icons/audio_file.png"))
             self.select_file_button.clicked.connect(self.select_file)
             self.select_file_button.setObjectName("PrimaryButton")
             button_layout.addWidget(self.select_file_button)
 
             self.select_folder_button = QPushButton("Selecionar Pasta")
-            self.select_folder_button.setIcon(QIcon("assets/icons/folder.png"))
+            self.select_folder_button.setIcon(QIcon("assets/icons/library_music.png"))
             self.select_folder_button.clicked.connect(self.select_folder)
             self.select_folder_button.setObjectName("PrimaryButton")
             button_layout.addWidget(self.select_folder_button)
@@ -263,6 +264,7 @@ class MainWindow(QWidget):
 
             # Initialize transcription control buttons
             transcribe_layout = QHBoxLayout()
+            transcribe_layout.setSpacing(8)
             self.transcribe_button = QPushButton("Iniciar Transcrição")
             self.transcribe_button.setObjectName("PrimaryButton")
             self.transcribe_button.setIcon(QIcon("assets/icons/start.png"))
@@ -281,7 +283,9 @@ class MainWindow(QWidget):
             # Initialize progress bar
             self.progress = QProgressBar()
             self.progress.setValue(0)
-            self.progress.setObjectName("ProgressBar")
+            self.progress.setObjectName("TranscriptionProgressBar")
+            self.progress.setFormat("%p%")  # Keep percentage, centered
+            self.progress.setTextVisible(True)
             layout.addWidget(self.progress)
 
             # Initialize elapsed time label
@@ -626,6 +630,7 @@ class MainWindow(QWidget):
 
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
+        layout.setSpacing(8)
 
         logo = QLabel()
         pixmap = QPixmap("assets/images/splash.png")
@@ -642,7 +647,7 @@ class MainWindow(QWidget):
         version_label.setAlignment(Qt.AlignCenter)
 
         layout.addWidget(logo)
-        layout.addSpacing(10)
+        layout.addSpacing(8)
         layout.addWidget(name_label)
         layout.addWidget(version_label)
 
@@ -669,6 +674,7 @@ class MainWindow(QWidget):
             dialog.setObjectName("SummaryDialog")
 
             layout = QVBoxLayout(dialog)
+            layout.setSpacing(8)
             layout.addWidget(QLabel(f"<b>Resumo de {len(file_paths)} arquivo(s) transcrito(s):</b>"))
 
             for file_path in file_paths:
@@ -685,6 +691,7 @@ class MainWindow(QWidget):
                 word_count = sum(1 for line in lines if line.strip() and not line.startswith("Nenhuma"))
 
                 file_layout = QHBoxLayout()
+                file_layout.setSpacing(8)
                 file_label = QLabel(f"{os.path.basename(file_path)}: {word_count} palavras sensíveis")
                 file_label.setObjectName("SummaryLabel")
                 file_layout.addWidget(file_label)

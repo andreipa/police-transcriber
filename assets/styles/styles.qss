@@ -1,192 +1,331 @@
-/* Settings Dialog */
-QDialog#SettingsDialog {
-    background-color: #1e1e1e;
+/* Windows 11 Fluent Design System styles */
+
+/* General Window and Dialogs */
+QWidget#MainWindow, QDialog#SettingsDialog, QDialog#WordEditorDialog, QDialog#AboutDialog, QDialog#SummaryDialog, QWidget#SplashScreen {
+    background-color: #252525; /* Windows 11 Mica background */
+    color: #f3f3f3;
+    border-radius: 8px;
+    border: 1px solid #2d2d2d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Labels */
-QLabel#SettingsLabel {
-    font-size: 13px;
-    font-weight: bold;
-    color: #ccc;
+QLabel#SettingsLabel, QLabel#titleLabel, QLabel#InstructionLabel {
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 600; /* Semibold */
+    color: #f3f3f3;
+    padding: 4px;
 }
 
-/* Description Label */
-QLabel#SettingsDescription {
+QLabel#SettingsDescription, QLabel#StatusLabel, QLabel#SummaryLabel, QLabel#AboutVersionLabel {
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    color: #d1d1d1;
+    padding: 4px;
+}
+
+QLabel#AboutNameLabel {
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #f3f3f3;
+}
+
+QLabel#SplashAppName {
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: #f3f3f3;
+}
+
+QLabel#SplashSlogan {
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 16px;
+    color: #d1d1d1;
+}
+
+QLabel#SplashVersion {
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
     font-size: 12px;
-    color: #aaa;
-    padding: 5px;
+    color: #797979;
+}
+
+QLabel#SplashMessage {
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 12px;
+    color: #d1d1d1;
 }
 
 /* Combo Boxes */
 QComboBox#SettingsComboBox {
-    background-color: #2c2c2c;
-    color: white;
-    border: 1px solid #555;
-    padding: 5px;
+    background-color: #333333;
+    color: #f3f3f3;
+    border: 1px solid #585858;
     border-radius: 4px;
+    padding: 4px 8px;
+    min-height: 32px;
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
 }
 
-QComboBox#SettingsComboBox:hover {
-    border-color: #aaa;
+QComboBox#SettingsComboBox:hover, QComboBox#SettingsComboBox:focus {
+    border-color: #0078d4;
+    background-color: #3c3c3c;
+}
+
+QComboBox#SettingsComboBox::drop-down {
+    border: none;
+    width: 24px;
+    background-color: transparent;
 }
 
 /* Line Edit */
 QLineEdit#SettingsLineEdit {
-    background-color: #2c2c2c;
-    color: white;
-    border: 1px solid #555;
-    padding: 5px;
+    background-color: #333333;
+    color: #f3f3f3;
+    border: 1px solid #585858;
     border-radius: 4px;
+    padding: 4px 8px;
+    min-height: 32px;
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+}
+
+QLineEdit#SettingsLineEdit:hover, QLineEdit#SettingsLineEdit:focus {
+    border-color: #0078d4;
+    background-color: #3c3c3c;
 }
 
 QLineEdit#SettingsLineEdit:disabled {
-    background-color: #333;
-    color: #888;
+    background-color: #3c3c3c;
+    color: #797979;
 }
 
 /* Checkboxes */
 QCheckBox#SettingsCheckBox {
-    color: white;
-    padding: 5px;
+    color: #f3f3f3;
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    padding: 8px;
+}
+
+QCheckBox#SettingsCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #585858;
+    border-radius: 4px;
+    background-color: #333333;
+}
+
+QCheckBox#SettingsCheckBox::indicator:checked {
+    background-color: #0078d4;
+    border-color: #0078d4;
+}
+
+QCheckBox#SettingsCheckBox::indicator:hover {
+    border-color: #0078d4;
 }
 
 /* Status Label */
 QLabel#SettingsStatusLabel {
-    color: #00aa00; /* Green for success */
-    font-size: 12px;
-    padding: 5px;
+    color: #107c10; /* Windows 11 green for success */
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    padding: 8px;
 }
 
 QLabel#SettingsStatusLabel[error="true"] {
-    color: #cc0000; /* Red for errors */
+    color: #f1707a; /* Windows 11 red for errors */
 }
 
 /* Button Box */
-QDialogButtonBox#SettingsButtonBox {
-    margin-top: 10px;
+QDialogButtonBox#SettingsButtonBox, QDialogButtonBox#AboutButtonBox, QDialogButtonBox#SummaryButtonBox {
+    margin-top: 8px;
 }
 
-/* Main Window */
-QWidget#MainWindow {
-    background-color: #1e1e1e;
+QDialogButtonBox#SettingsButtonBox QPushButton,
+QDialogButtonBox#AboutButtonBox QPushButton,
+QDialogButtonBox#SummaryButtonBox QPushButton {
+    background-color: #333333;
+    color: #f3f3f3;
+    border: 1px solid #585858;
+    min-height: 32px;
+    max-width: 120px; /* Reduced width for dialog buttons */
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px; /* Gap between dialog buttons */
+    transition: background-color 0.2s ease-in-out;
+}
+
+QDialogButtonBox#SettingsButtonBox QPushButton:hover,
+QDialogButtonBox#AboutButtonBox QPushButton:hover,
+QDialogButtonBox#SummaryButtonBox QPushButton:hover {
+    background-color: #3c3c3c;
+    border-color: #aaaaaa;
+}
+
+QDialogButtonBox#SettingsButtonBox QPushButton:focus,
+QDialogButtonBox#AboutButtonBox QPushButton:focus,
+QDialogButtonBox#SummaryButtonBox QPushButton:focus {
+    border: 2px solid #0078d4;
 }
 
 /* Menu Bar */
 QMenuBar#MenuBar {
-    background-color: #2a2a2a;
-    color: white;
-}
-
-/* Labels */
-QLabel#InstructionLabel {
+    background-color: #333333;
+    color: #f3f3f3;
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
     font-size: 13px;
-    color: #ccc;
+    padding: 4px;
+    min-height: 32px;
 }
 
-QLabel#StatusLabel {
-    font-size: 12px;
-    color: #aaa;
+QMenuBar#MenuBar::item:hover, QMenuBar#MenuBar::item:selected {
+    background-color: #3c3c3c;
 }
 
 /* File List */
 QListWidget#FileList {
-    background-color: #1c1c1c;
-    color: white;
-    border: 1px solid #555;
+    background-color: #333333;
+    color: #f3f3f3;
+    border: 1px solid #585858;
+    border-radius: 4px;
     padding: 4px;
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
 }
 
-/* Dialogs */
-QDialog#AboutDialog, QDialog#SummaryDialog {
-    background-color: #1e1e1e;
+QListWidget#FileList::item:selected {
+    background-color: rgba(0, 120, 212, 0.3);
+    color: #f3f3f3;
+}
+
+QListWidget#FileList::item:hover {
+    background-color: #3c3c3c;
 }
 
 /* About Dialog */
 QLabel#AboutLogo {
-    padding: 10px;
-}
-
-QLabel#AboutNameLabel {
-    font-size: 16px;
-    font-weight: bold;
-    color: white;
-}
-
-QLabel#AboutVersionLabel {
-    font-size: 13px;
-    color: #aaa;
-}
-
-/* Summary Dialog */
-QLabel#SummaryLabel {
-    font-size: 12px;
-    color: white;
-}
-
-/* Button Boxes */
-QDialogButtonBox#AboutButtonBox, QDialogButtonBox#SummaryButtonBox {
-    margin-top: 10px;
-}
-
-/* Splash Screen */
-QWidget#SplashScreen {
-    background-color: #121212;
-    color: white;
-}
-
-/* Logo */
-QLabel#SplashLogo {
-    padding: 10px;
-}
-
-/* Application Name */
-QLabel#SplashAppName {
-    font-size: 25px;
-    font-weight: bold;
-    color: white;
-}
-
-/* Slogan */
-QLabel#SplashSlogan {
-    font-size: 15px;
-    color: #ccc;
-}
-
-/* Version */
-QLabel#SplashVersion {
-    font-size: 10px;
-    color: #888;
+    padding: 8px;
 }
 
 /* Progress Bar */
-QProgressBar#SplashProgressBar {
-    border: 1px solid #444;
-    border-radius: 5px;
-    background-color: #222;
+QProgressBar#SplashProgressBar, QProgressBar#TranscriptionProgressBar {
+    border: none;
+    border-radius: 4px;
+    background-color: #333333;
+    min-height: 4px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     text-align: center;
-    color: white;
-}
-
-QProgressBar#SplashProgressBar::chunk {
-    background-color: #00cc66;
-    border-radius: 5px;
-}
-
-/* Message Label */
-QLabel#SplashMessage {
-    font-size: 11px;
-    color: #ccc;
-}
-
-#StatusBar {
-    background-color: #121212;
-    color: #ffffff;
+    color: #f3f3f3;
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
     font-size: 10px;
 }
 
+QProgressBar#SplashProgressBar::chunk, QProgressBar#TranscriptionProgressBar::chunk {
+    background-color: #0078d4;
+    border-radius: 4px;
+}
+
+/* Status Bar */
+#StatusBar {
+    background: qlineargradient(x1:1, y1:0, x2:0, y2:0, stop:0 #3c3c3c, stop:1 #252525); /* Adjusted gradient */
+    color: #f3f3f3;
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 10px;
+    min-height: 24px;
+}
+
 #StatusBar::tooltip {
-    background-color: #1e1e1e;
-    color: #ffffff;
-    border: 1px solid #00cc66;
-    padding: 5px;
+    background-color: #333333;
+    color: #f3f3f3;
+    border: 1px solid #585858;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+/* Buttons */
+QPushButton#PrimaryButton {
+    background-color: #0078d4;
+    color: #f3f3f3;
+    border: none;
+    min-height: 32px;
+    max-width: 150px; /* Confirmed width */
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px; /* Gap between buttons */
+    transition: background-color 0.2s ease-in-out;
+}
+
+QPushButton#PrimaryButton:hover {
+    background-color: #005fb8;
+}
+
+QPushButton#PrimaryButton:focus {
+    border: 2px solid #0078d4;
+}
+
+QPushButton#PrimaryButton:disabled {
+    background-color: #585858;
+    color: #797979;
+}
+
+QPushButton#DangerButton, QPushButton#WordEditorButton[role="danger"] {
+    background-color: #f1707a;
+    color: #f3f3f3;
+    border: none;
+    min-height: 32px;
+    max-width: 150px; /* Confirmed width */
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px; /* Gap between buttons */
+    transition: background-color 0.2s ease-in-out;
+}
+
+QPushButton#DangerButton:hover, QPushButton#WordEditorButton[role="danger"]:hover {
+    background-color: #c42b1c;
+}
+
+QPushButton#DangerButton:focus, QPushButton#WordEditorButton[role="danger"]:focus {
+    border: 2px solid #f1707a;
+}
+
+QPushButton#DangerButton:disabled, QPushButton#WordEditorButton[role="danger"]:disabled {
+    background-color: #585858;
+    color: #797979;
+}
+
+QPushButton#SettingsButton, QPushButton#WordEditorButton {
+    background-color: #333333;
+    color: #f3f3f3;
+    border: 1px solid #585858;
+    min-height: 32px;
+    max-width: 150px; /* Confirmed width */
+    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px; /* Gap between buttons */
+    transition: background-color 0.2s ease-in-out;
+}
+
+QPushButton#SettingsButton:hover, QPushButton#WordEditorButton:hover {
+    background-color: #3c3c3c;
+    border-color: #aaaaaa;
+}
+
+QPushButton#SettingsButton:focus, QPushButton#WordEditorButton:focus {
+    border: 2px solid #0078d4;
+}
+
+QPushButton#SettingsButton:disabled, QPushButton#WordEditorButton:disabled {
+    background-color: #3c3c3c;
+    color: #797979;
 }
