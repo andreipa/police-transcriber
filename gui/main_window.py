@@ -188,11 +188,13 @@ class MainWindow(QWidget):
             # Initialize menu bar
             menu_bar = QMenuBar(self)
             menu_bar.setObjectName("MenuBar")
+
+            # Arquivo menu
             file_menu = menu_bar.addMenu("Arquivo")
-            open_file_action = QAction(QIcon("assets/icons/audio_file.png"), "Selecionar Arquivo", self)
+            open_file_action = QAction(QIcon("assets/icons/audio_file.png"), "Selecionar Arquivo...", self)
             open_file_action.triggered.connect(self.select_file)
             file_menu.addAction(open_file_action)
-            open_folder_action = QAction(QIcon("assets/icons/library_music.png"), "Selecionar Pasta", self)
+            open_folder_action = QAction(QIcon("assets/icons/library_music.png"), "Selecionar Pasta...", self)
             open_folder_action.triggered.connect(self.select_folder)
             file_menu.addAction(open_folder_action)
             file_menu.addSeparator()
@@ -200,30 +202,35 @@ class MainWindow(QWidget):
             exit_action.triggered.connect(self.close)
             file_menu.addAction(exit_action)
 
-            tools_menu = menu_bar.addMenu("Ferramentas")
-            edit_words_action = QAction(QIcon("assets/icons/edit.png"), "Editar Palavras Sensíveis", self)
+            # Editar menu
+            edit_menu = menu_bar.addMenu("Editar")
+            edit_words_action = QAction(QIcon("assets/icons/edit.png"), "Editar Palavras Sensíveis...", self)
             edit_words_action.triggered.connect(self.open_word_editor)
-            tools_menu.addAction(edit_words_action)
-            open_log_action = QAction(QIcon("assets/icons/bug_report.png"), "Abrir Log", self)
-            open_log_action.triggered.connect(self.open_log_file)
-            tools_menu.addAction(open_log_action)
-            backup_transcriptions_action = QAction(QIcon("assets/icons/backup.png"), "Fazer Backup das Transcrições", self)
+            edit_menu.addAction(edit_words_action)
+
+            # Ferramentas menu
+            tools_menu = menu_bar.addMenu("Ferramentas")
+            backup_transcriptions_action = QAction(QIcon("assets/icons/backup.png"), u"Fazer Backup das Transcrições...", self)
             backup_transcriptions_action.triggered.connect(self.backup_transcriptions)
             tools_menu.addAction(backup_transcriptions_action)
-
-            settings_menu = menu_bar.addMenu("Configurações")
-            settings_action = QAction(QIcon("assets/icons/settings.png"), "Configurações", self)
+            open_log_action = QAction(QIcon("assets/icons/bug_report.png"), u"Abrir Log", self)
+            open_log_action.triggered.connect(self.open_log_file)
+            tools_menu.addAction(open_log_action)
+            settings_action = QAction(QIcon("assets/icons/settings.png"), u"Opções...", self)
             settings_action.triggered.connect(self.open_settings_dialog)
-            settings_menu.addAction(settings_action)
+            tools_menu.addAction(settings_action)
+            app_logger.debug(f"Added Opções action to Ferramentas menu: {settings_action.text()}")
 
+            # Ajuda menu
             help_menu = menu_bar.addMenu("Ajuda")
             help_action = QAction(QIcon("assets/icons/help.png"), "Ajuda Online...", self)
             help_action.triggered.connect(self.open_help_link)
             help_menu.addAction(help_action)
-            help_menu.addSeparator()
             about_action = QAction(QIcon("assets/icons/about.png"), "Sobre", self)
             about_action.triggered.connect(self.show_about)
             help_menu.addAction(about_action)
+
+            layout.setMenuBar(menu_bar)
 
             layout.setMenuBar(menu_bar)
 
@@ -622,41 +629,52 @@ class MainWindow(QWidget):
             debug_logger.debug(f"Help link error: {str(e)}")
 
     def show_about(self) -> None:
-        """Display an About dialog with the application logo, name, and version."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Sobre")
-        dialog.setMinimumSize(300, 250)
-        dialog.setObjectName("AboutDialog")
+        """Display an About dialog with the application logo, name, version, and developer info."""
 
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
-        layout.setSpacing(8)
+        class AboutDialog(QDialog):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                self.setWindowTitle("Sobre")
+                self.setMinimumSize(300, 250)
+                self.setObjectName("AboutDialog")
 
-        logo = QLabel()
-        pixmap = QPixmap("assets/images/splash.png")
-        logo.setPixmap(pixmap.scaledToWidth(120, Qt.SmoothTransformation))
-        logo.setAlignment(Qt.AlignCenter)
-        logo.setObjectName("AboutLogo")
+                layout = QVBoxLayout()
+                layout.setAlignment(Qt.AlignCenter)
+                layout.setSpacing(8)
 
-        name_label = QLabel(APP_NAME)
-        name_label.setObjectName("AboutNameLabel")
-        name_label.setAlignment(Qt.AlignCenter)
+                logo = QLabel()
+                pixmap = QPixmap("assets/images/splash.png")
+                logo.setPixmap(pixmap.scaledToWidth(120, Qt.SmoothTransformation))
+                logo.setAlignment(Qt.AlignCenter)
+                logo.setObjectName("AboutLogo")
 
-        version_label = QLabel(f"Versão: {VERSION}")
-        version_label.setObjectName("AboutVersionLabel")
-        version_label.setAlignment(Qt.AlignCenter)
+                name_label = QLabel(APP_NAME)
+                name_label.setObjectName("AboutNameLabel")
+                name_label.setAlignment(Qt.AlignCenter)
 
-        layout.addWidget(logo)
-        layout.addSpacing(8)
-        layout.addWidget(name_label)
-        layout.addWidget(version_label)
+                version_label = QLabel(f"Versão: {VERSION}")
+                version_label.setObjectName("AboutVersionLabel")
+                version_label.setAlignment(Qt.AlignCenter)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok)
-        button_box.setObjectName("AboutButtonBox")
-        button_box.accepted.connect(dialog.accept)
-        layout.addWidget(button_box)
+                developer_label = QLabel("Developed by TechDev Andrade Ltda.")
+                developer_label.setObjectName("AboutVersionLabel")  # Reuse style for consistency
+                developer_label.setAlignment(Qt.AlignCenter)
 
-        dialog.setLayout(layout)
+                layout.addWidget(logo)
+                layout.addSpacing(8)
+                layout.addWidget(name_label)
+                layout.addWidget(version_label)
+                layout.addWidget(developer_label)
+
+                self.setLayout(layout)
+
+            def mousePressEvent(self, event):
+                """Close the dialog on any mouse click."""
+                if event.button() == Qt.LeftButton:
+                    self.accept()
+                super().mousePressEvent(event)
+
+        dialog = AboutDialog(self)
         dialog.exec_()
         app_logger.info("Showed About dialog")
         debug_logger.debug("About dialog displayed")

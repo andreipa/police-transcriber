@@ -6,12 +6,11 @@ QWidget#MainWindow, QDialog#SettingsDialog, QDialog#WordEditorDialog, QDialog#Ab
     color: #f3f3f3;
     border-radius: 8px;
     border: 1px solid #2d2d2d;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Labels */
 QLabel#SettingsLabel, QLabel#titleLabel, QLabel#InstructionLabel {
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 15px;
     font-weight: 600; /* Semibold */
     color: #f3f3f3;
@@ -19,40 +18,40 @@ QLabel#SettingsLabel, QLabel#titleLabel, QLabel#InstructionLabel {
 }
 
 QLabel#SettingsDescription, QLabel#StatusLabel, QLabel#SummaryLabel, QLabel#AboutVersionLabel {
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     color: #d1d1d1;
     padding: 4px;
 }
 
 QLabel#AboutNameLabel {
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 20px;
     font-weight: 600;
     color: #f3f3f3;
 }
 
 QLabel#SplashAppName {
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 28px;
     font-weight: 600;
     color: #f3f3f3;
 }
 
 QLabel#SplashSlogan {
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 16px;
     color: #d1d1d1;
 }
 
 QLabel#SplashVersion {
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 12px;
     color: #797979;
 }
 
 QLabel#SplashMessage {
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 12px;
     color: #d1d1d1;
 }
@@ -65,7 +64,7 @@ QComboBox#SettingsComboBox {
     border-radius: 4px;
     padding: 4px 8px;
     min-height: 32px;
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
 }
 
@@ -88,7 +87,7 @@ QLineEdit#SettingsLineEdit {
     border-radius: 4px;
     padding: 4px 8px;
     min-height: 32px;
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
 }
 
@@ -105,7 +104,7 @@ QLineEdit#SettingsLineEdit:disabled {
 /* Checkboxes */
 QCheckBox#SettingsCheckBox {
     color: #f3f3f3;
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     padding: 8px;
 }
@@ -130,7 +129,7 @@ QCheckBox#SettingsCheckBox::indicator:hover {
 /* Status Label */
 QLabel#SettingsStatusLabel {
     color: #107c10; /* Windows 11 green for success */
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     padding: 8px;
 }
@@ -152,32 +151,18 @@ QDialogButtonBox#SummaryButtonBox QPushButton {
     border: 1px solid #585858;
     min-height: 32px;
     max-width: 120px; /* Reduced width for dialog buttons */
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     padding: 4px 8px;
     border-radius: 4px;
     margin-right: 8px; /* Gap between dialog buttons */
-    transition: background-color 0.2s ease-in-out;
-}
-
-QDialogButtonBox#SettingsButtonBox QPushButton:hover,
-QDialogButtonBox#AboutButtonBox QPushButton:hover,
-QDialogButtonBox#SummaryButtonBox QPushButton:hover {
-    background-color: #3c3c3c;
-    border-color: #aaaaaa;
-}
-
-QDialogButtonBox#SettingsButtonBox QPushButton:focus,
-QDialogButtonBox#AboutButtonBox QPushButton:focus,
-QDialogButtonBox#SummaryButtonBox QPushButton:focus {
-    border: 2px solid #0078d4;
 }
 
 /* Menu Bar */
 QMenuBar#MenuBar {
     background-color: #333333;
     color: #f3f3f3;
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     padding: 4px;
     min-height: 32px;
@@ -194,7 +179,7 @@ QListWidget#FileList {
     border: 1px solid #585858;
     border-radius: 4px;
     padding: 4px;
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
 }
 
@@ -218,10 +203,9 @@ QProgressBar#SplashProgressBar, QProgressBar#TranscriptionProgressBar {
     border-radius: 4px;
     background-color: #333333;
     min-height: 4px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     text-align: center;
     color: #f3f3f3;
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 10px;
 }
 
@@ -234,7 +218,7 @@ QProgressBar#SplashProgressBar::chunk, QProgressBar#TranscriptionProgressBar::ch
 #StatusBar {
     background: qlineargradient(x1:1, y1:0, x2:0, y2:0, stop:0 #3c3c3c, stop:1 #252525); /* Adjusted gradient */
     color: #f3f3f3;
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 10px;
     min-height: 24px;
 }
@@ -254,12 +238,11 @@ QPushButton#PrimaryButton {
     border: none;
     min-height: 32px;
     max-width: 150px; /* Confirmed width */
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     padding: 4px 8px;
     border-radius: 4px;
     margin-right: 8px; /* Gap between buttons */
-    transition: background-color 0.2s ease-in-out;
 }
 
 QPushButton#PrimaryButton:hover {
@@ -281,12 +264,11 @@ QPushButton#DangerButton, QPushButton#WordEditorButton[role="danger"] {
     border: none;
     min-height: 32px;
     max-width: 150px; /* Confirmed width */
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     padding: 4px 8px;
     border-radius: 4px;
     margin-right: 8px; /* Gap between buttons */
-    transition: background-color 0.2s ease-in-out;
 }
 
 QPushButton#DangerButton:hover, QPushButton#WordEditorButton[role="danger"]:hover {
@@ -308,12 +290,11 @@ QPushButton#SettingsButton, QPushButton#WordEditorButton {
     border: 1px solid #585858;
     min-height: 32px;
     max-width: 150px; /* Confirmed width */
-    font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     padding: 4px 8px;
     border-radius: 4px;
     margin-right: 8px; /* Gap between buttons */
-    transition: background-color 0.2s ease-in-out;
 }
 
 QPushButton#SettingsButton:hover, QPushButton#WordEditorButton:hover {
