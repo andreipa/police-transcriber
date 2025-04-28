@@ -150,6 +150,23 @@ class BackgroundAppUpdateChecker(QThread):
             debug_logger.debug(f"Update check error: {str(e)}")
 
 
+class ClickableStatusBar(QStatusBar):
+    """A custom QStatusBar that emits a signal when clicked."""
+
+    clicked = pyqtSignal()
+    """Signal emitted when the status bar is clicked."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("StatusBar")
+
+    def mousePressEvent(self, event):
+        """Handle mouse press events to emit the clicked signal."""
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
+
 class MainWindow(QWidget):
     """Main application window for managing audio file transcription and sensitive word detection."""
 
@@ -274,10 +291,9 @@ class MainWindow(QWidget):
             layout.addWidget(self.elapsed_label)
 
             # Initialize status bar
-            self.status_bar = QStatusBar()
-            self.status_bar.setObjectName("StatusBar")
+            self.status_bar = ClickableStatusBar()
             self.status_bar.showMessage(f"Modelo carregado: {SELECTED_MODEL} | Última atualização: --")
-            self.status_bar.messageChanged.connect(self.handle_status_bar_click)
+            self.status_bar.clicked.connect(self.handle_status_bar_click)
             layout.addWidget(self.status_bar)
 
             # Initialize background update checker
@@ -324,8 +340,9 @@ class MainWindow(QWidget):
         app_logger.info(f"Update notification shown: v{version}")
         debug_logger.debug(f"Update notification for version {version}, URL: {release_url}")
 
-    def handle_status_bar_click(self, message: str) -> None:
+    def handle_status_bar_click(self) -> None:
         """Handle clicks on the status bar to open the release URL if an update is available."""
+        message = self.status_bar.currentMessage()
         if message.startswith("🔔 Atualização disponível") and self.release_url:
             try:
                 QDesktopServices.openUrl(QUrl(self.release_url))
