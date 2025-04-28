@@ -294,6 +294,7 @@ class MainWindow(QWidget):
             self.status_bar = ClickableStatusBar()
             self.status_bar.showMessage(f"Modelo carregado: {SELECTED_MODEL} | Última atualização: --")
             self.status_bar.clicked.connect(self.handle_status_bar_click)
+            self.status_bar.messageChanged.connect(self.update_status_bar_cursor)
             layout.addWidget(self.status_bar)
 
             # Initialize background update checker
@@ -336,14 +337,28 @@ class MainWindow(QWidget):
             release_url: The URL of the GitHub release page.
         """
         self.release_url = release_url
-        self.status_bar.showMessage(f"🔔 Atualização disponível: v{version}. Clique aqui para baixar.")
+        self.status_bar.showMessage(f"🔔 New version v{version} available! Click to download.")
+        self.status_bar.setToolTip(f"A new version (v{version}) is available. Click to visit the download page.")
+        self.status_bar.setCursor(Qt.PointingHandCursor)
         app_logger.info(f"Update notification shown: v{version}")
         debug_logger.debug(f"Update notification for version {version}, URL: {release_url}")
+
+    def update_status_bar_cursor(self, message: str) -> None:
+        """Update the status bar cursor based on the current message.
+
+        Args:
+            message: The current status bar message.
+        """
+        if message.startswith("🔔 New version"):
+            self.status_bar.setCursor(Qt.PointingHandCursor)
+        else:
+            self.status_bar.setCursor(Qt.ArrowCursor)
+        debug_logger.debug(f"Status bar cursor updated for message: {message}")
 
     def handle_status_bar_click(self) -> None:
         """Handle clicks on the status bar to open the release URL if an update is available."""
         message = self.status_bar.currentMessage()
-        if message.startswith("🔔 Atualização disponível") and self.release_url:
+        if message.startswith("🔔 New version") and self.release_url:
             try:
                 QDesktopServices.openUrl(QUrl(self.release_url))
                 app_logger.info(f"Opened release URL: {self.release_url}")
