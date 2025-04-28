@@ -45,6 +45,8 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Configurações")
         self.setMinimumSize(450, 550)  # Adjusted for content and readability
         self.setObjectName("SettingsDialog")  # For stylesheet targeting
+        app_logger.debug("Initializing SettingsDialog")
+        debug_logger.debug("Starting SettingsDialog setup")
 
         # Main layout
         layout = QVBoxLayout()
@@ -110,7 +112,7 @@ class SettingsDialog(QDialog):
         self.output_line_edit.setObjectName("SettingsLineEdit")
         self.output_line_edit.setToolTip("Pasta onde as transcrições serão salvas.")
         output_button = QPushButton("Selecionar")
-        output_button.setObjectName("SettingsButton")
+        output_button.setObjectName("PrimaryButton")  # Changed to PrimaryButton for consistency
         output_button.clicked.connect(self.select_output_folder)
         output_layout = QVBoxLayout()
         output_layout.addWidget(self.output_line_edit)
@@ -148,6 +150,8 @@ class SettingsDialog(QDialog):
         layout.addWidget(button_box)
 
         self.setLayout(layout)
+        app_logger.debug("SettingsDialog initialization completed")
+        debug_logger.debug("SettingsDialog setup finished")
 
     def get_model_description(self, model: str) -> str:
         """Get a description of the selected model.
@@ -173,7 +177,8 @@ class SettingsDialog(QDialog):
             model: The newly selected model name.
         """
         self.model_description.setText(self.get_model_description(model))
-        debug_logger.debug(f"Updated model description to: {model}")
+        app_logger.debug(f"Updated model description: {model}")
+        debug_logger.debug(f"Model description changed to: {model}")
 
     def select_output_folder(self) -> None:
         """Open a folder picker dialog to select the output folder."""
@@ -203,6 +208,9 @@ class SettingsDialog(QDialog):
                 Path(output_folder).mkdir(parents=True, exist_ok=True)
                 if not os.path.isdir(output_folder):
                     self.status_label.setText("Erro: Pasta de saída inválida.")
+                    self.status_label.setProperty("error", True)
+                    self.status_label.style().unpolish(self.status_label)
+                    self.status_label.style().polish(self.status_label)
                     app_logger.error(f"Failed to create output folder: {output_folder}")
                     return
 
@@ -218,16 +226,23 @@ class SettingsDialog(QDialog):
                 f"verbose={verbose}, output_folder={output_folder}, check_for_updates={check_for_updates}"
             )
             self.status_label.setText("Configurações salvas com sucesso!")
+            self.status_label.setProperty("error", False)
+            self.status_label.style().unpolish(self.status_label)
+            self.status_label.style().polish(self.status_label)
             debug_logger.debug("Settings saved successfully")
             super().accept()
         except Exception as e:
             app_logger.error(f"Failed to save settings: {e}")
             self.status_label.setText("Erro ao salvar configurações.")
+            self.status_label.setProperty("error", True)
+            self.status_label.style().unpolish(self.status_label)
+            self.status_label.style().polish(self.status_label)
             debug_logger.debug(f"Failed to save settings: {str(e)}")
             QMessageBox.critical(self, "Erro", "Falha ao salvar configurações. Verifique os logs para detalhes.")
 
     def reject(self) -> None:
         """Handle the Cancel button click."""
         self.status_label.setText("")
-        debug_logger.debug("Settings dialog cancelled")
+        app_logger.debug("SettingsDialog cancelled")
+        debug_logger.debug("User cancelled SettingsDialog")
         super().reject()
