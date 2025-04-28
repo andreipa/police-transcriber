@@ -181,7 +181,7 @@ QLabel#SplashMessage {
 #StatusBar {
     background-color: #121212;
     color: #ffffff;
-    font-size: 14px;
+    font-size: 10px;
 }
 
 #StatusBar::tooltip {
