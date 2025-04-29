@@ -29,7 +29,6 @@ from config import (
     AVAILABLE_MODELS,
     SELECTED_MODEL,
     LOGGING_LEVEL,
-    VERBOSE,
     OUTPUT_FOLDER,
     CHECK_FOR_UPDATES,
     app_logger,
@@ -56,8 +55,8 @@ class SettingsDialog(QDialog):
 
         # Main layout
         layout = QVBoxLayout()
-        layout.setSpacing(8)  # Windows 11 8px grid
-        layout.setContentsMargins(12, 24, 12, 12)  # Increased top margin to 24px
+        layout.setSpacing(24)  # Further increased spacing for better separation
+        layout.setContentsMargins(12, 24, 12, 12)
 
         # Group: Configurações de Transcrição
         transcription_group = QGroupBox("Configurações de Transcrição")
@@ -69,13 +68,13 @@ class SettingsDialog(QDialog):
         # Model selection row (label, ComboBox, and description)
         model_row = QHBoxLayout()
         model_label = QLabel("Modelo:")
-        model_label.setFixedWidth(60)  # Fixed label width for consistent spacing
+        model_label.setFixedWidth(80)  # Increased to prevent overlap
         model_label.setObjectName("SettingsLabel")
         self.model_combo = QComboBox()
         self.model_combo.addItems(AVAILABLE_MODELS.keys())
         self.model_combo.setCurrentText(SELECTED_MODEL)
         self.model_combo.setObjectName("SettingsComboBox")
-        self.model_combo.setFixedWidth(120)  # Adjusted for side-by-side layout
+        self.model_combo.setFixedWidth(120)  # Reduced to give more space to description
         self.model_combo.setToolTip("Selecione o modelo de transcrição a ser usado.")
         model_row.addWidget(model_label)
         model_row.addWidget(self.model_combo)
@@ -83,6 +82,7 @@ class SettingsDialog(QDialog):
         # Model description beside ComboBox
         self.model_description = QLabel(self.get_model_description(SELECTED_MODEL))
         self.model_description.setWordWrap(True)
+        self.model_description.setMaximumWidth(250)  # Limit width to ensure wrapping
         self.model_description.setObjectName("SettingsDescription")
         model_row.addWidget(self.model_description)
         self.model_combo.currentTextChanged.connect(self.update_model_description)
@@ -101,48 +101,36 @@ class SettingsDialog(QDialog):
         # Logging level row (label, ComboBox, and description)
         logging_row = QHBoxLayout()
         logging_label = QLabel("Nível de Log:")
-        logging_label.setFixedWidth(60)  # Fixed label width for consistent spacing
+        logging_label.setFixedWidth(94)  # Increased to prevent overlap
         logging_label.setObjectName("SettingsLabel")
         self.logging_combo = QComboBox()
         self.logging_combo.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
         self.logging_combo.setCurrentText(LOGGING_LEVEL)
         self.logging_combo.setObjectName("SettingsComboBox")
-        self.logging_combo.setFixedWidth(120)  # Adjusted for side-by-side layout
-        self.logging_combo.setToolTip(
-            "Nível de log para app.log:\n"
-            "- DEBUG: Todos os detalhes (desenvolvimento).\n"
-            "- INFO: Eventos principais (monitoramento).\n"
-            "- WARNING: Avisos não críticos.\n"
-            "- ERROR: Erros recuperáveis (padrão).\n"
-            "- CRITICAL: Erros graves que param o aplicativo."
-        )
+        self.logging_combo.setFixedWidth(115)  # Reduced to give more space to description
+        self.logging_combo.setToolTip("Selecione o nível de log para app.log")
         logging_row.addWidget(logging_label)
         logging_row.addWidget(self.logging_combo)
 
         # Logging level description beside ComboBox
-        logging_description = QLabel(
-            "Define o nível de detalhe dos logs:\n"
-            "- DEBUG: Todos os detalhes (desenvolvimento).\n"
-            "- INFO: Eventos principais (monitoramento).\n"
-            "- WARNING: Avisos não críticos.\n"
-            "- ERROR: Erros recuperáveis (padrão).\n"
-            "- CRITICAL: Erros graves que param o aplicativo."
-        )
-        logging_description.setWordWrap(True)
-        logging_description.setObjectName("SettingsDescription")
-        logging_row.addWidget(logging_description)
+        self.logging_description = QLabel(self.get_logging_description(LOGGING_LEVEL))
+        self.logging_description.setWordWrap(True)
+        self.logging_description.setMaximumWidth(250)  # Limit width to ensure wrapping
+        self.logging_description.setObjectName("SettingsDescription")
+        logging_row.addWidget(self.logging_description)
+        self.logging_combo.currentTextChanged.connect(self.update_logging_description)
 
         logging_layout.addLayout(logging_row)
 
         # Verbose logging checkbox inside the group box
-        self.verbose_checkbox = QCheckBox("Habilitar Log Detalhado (debug.log)")
-        self.verbose_checkbox.setChecked(VERBOSE)
-        self.verbose_checkbox.setObjectName("SettingsCheckBox")
-        self.verbose_checkbox.setToolTip(
-            "Habilita logs detalhados em logs/debug.log para depuração. "
-            "Útil para diagnosticar problemas, mas pode gerar arquivos grandes."
-        )
-        logging_layout.addWidget(self.verbose_checkbox)
+        #    self.verbose_checkbox = QCheckBox("Habilitar Log Detalhado (debug.log)")
+        #    self.verbose_checkbox.setChecked(VERBOSE)
+        #    self.verbose_checkbox.setObjectName("SettingsCheckBox")
+        #    self.verbose_checkbox.setToolTip(
+        #        "Habilita logs detalhados em logs/debug.log para depuração. "
+        #        "Útil para diagnosticar problemas, mas pode gerar arquivos grandes."
+        #    )
+        #    logging_layout.addWidget(self.verbose_checkbox)
 
         logging_group.setLayout(logging_layout)
         layout.addWidget(logging_group)
@@ -236,10 +224,10 @@ class SettingsDialog(QDialog):
             A string describing the model's characteristics.
         """
         descriptions = {
-            "base": "Base: 145 MB, baixa precisão, rápido, ideal para testes.",
-            "small": "Small: 484 MB, precisão moderada, bom equilíbrio.",
-            "medium": "Medium: 1.53 GB, alta precisão, recomendado para uso geral.",
-            "large-v2": "Large-v2: 3.09 GB, máxima precisão, ideal para transcrições críticas, mas mais lento.",
+            "base": "145 MB - Baixa precisão, rápido, ideal para testes.",
+            "small": "484 MB - Precisão moderada, bom equilíbrio.",
+            "medium": "1.53 GB - Alta precisão, recomendado para uso geral.",
+            "large-v2": "3.09 GB - Máxima precisão, ideal para transcrições críticas, mas mais lento.",
         }
         return descriptions.get(model, "Selecione um modelo para ver a descrição.")
 
@@ -252,6 +240,34 @@ class SettingsDialog(QDialog):
         self.model_description.setText(self.get_model_description(model))
         app_logger.debug(f"Updated model description: {model}")
         debug_logger.debug(f"Model description changed to: {model}")
+
+    def get_logging_description(self, level: str) -> str:
+        """Get a description of the selected logging level.
+
+        Args:
+            level: The logging level (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL').
+
+        Returns:
+            A string describing the logging level's characteristics.
+        """
+        descriptions = {
+            "DEBUG": "Todos os detalhes (desenvolvimento).",
+            "INFO": "Eventos principais (monitoramento).",
+            "WARNING": "Avisos não críticos.",
+            "ERROR": "Erros recuperáveis (padrão).",
+            "CRITICAL": "Erros graves que param o aplicativo.",
+        }
+        return descriptions.get(level, "Selecione um nível de log para ver a descrição.")
+
+    def update_logging_description(self, level: str) -> None:
+        """Update the logging description label when the selected logging level changes.
+
+        Args:
+            level: The newly selected logging level.
+        """
+        self.logging_description.setText(self.get_logging_description(level))
+        app_logger.debug(f"Updated logging description: {level}")
+        debug_logger.debug(f"Logging description changed to: {level}")
 
     def select_output_folder(self) -> None:
         """Open a folder picker dialog to select the output folder."""

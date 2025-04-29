@@ -15,13 +15,14 @@ QLabel#SettingsLabel, QLabel#titleLabel, QLabel#InstructionLabel {
     font-weight: 600; /* Semibold */
     color: #f3f3f3;
     padding: 4px;
+    height: 32px; /* Standard height for labels */
 }
 
 QLabel#SettingsDescription, QLabel#StatusLabel, QLabel#SummaryLabel, QLabel#AboutVersionLabel {
     font-family: "Helvetica", "Segoe UI", Arial, sans-serif;
     font-size: 10px;
     color: #d1d1d1;
-    padding: 4px;
+    padding: 2px;
 }
 
 QLabel#AboutNameLabel {
@@ -67,6 +68,7 @@ QComboBox#SettingsComboBox {
     max-width: 450px; /* Increased for Windows 11 style */
     font-family: "Helvetica", "Segoe UI", Arial, sans-serif;
     font-size: 13px;
+    width:59px;
 }
 
 QComboBox#SettingsComboBox:hover, QComboBox#SettingsComboBox:focus {
@@ -167,8 +169,8 @@ QCheckBox#SettingsCheckBox::indicator {
 }
 
 QCheckBox#SettingsCheckBox::indicator:checked {
-    background-color: #0078d4;
-    border-color: #0078d4;
+    background-color: #4a90e2; /* Lighter blue for better visibility */
+    border-color: #4a90e2;
     image: url(assets/icons/checkmark.png); /* Placeholder for checkmark icon */
 }
 
