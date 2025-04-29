@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
     QDialog,
     QFileDialog,
     QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -48,7 +49,7 @@ class SettingsDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle("Configurações")
-        self.setMinimumSize(500, 450)  # Compact size for better focus
+        self.setFixedSize(500, 450)  # Prevent resizing/maximization
         self.setObjectName("SettingsDialog")  # For stylesheet targeting
         app_logger.debug("Initializing SettingsDialog")
         debug_logger.debug("Starting SettingsDialog setup")
@@ -56,40 +57,39 @@ class SettingsDialog(QDialog):
         # Main layout
         layout = QVBoxLayout()
         layout.setSpacing(8)  # Windows 11 8px grid
-        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setContentsMargins(12, 27, 12, 12)  # Increased top margin to 24px
 
-        # Header: Configurações de Transcrição
-        transcription_header = QLabel("Configurações de Transcrição")
-        transcription_header.setObjectName("SettingsLabel")
-        layout.addWidget(transcription_header)
+        # Group: Configurações de Transcrição
+        transcription_group = QGroupBox("Configurações de Transcrição")
+        transcription_group.setObjectName("SettingsGroupBox")
+        transcription_layout = QVBoxLayout()
+        transcription_layout.setSpacing(8)
+        transcription_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Form layout for transcription settings
-        transcription_form = QFormLayout()
-        transcription_form.setLabelAlignment(Qt.AlignRight)
-        transcription_form.setFormAlignment(Qt.AlignLeft)
-        transcription_form.setSpacing(8)
-        transcription_form.setContentsMargins(0, 0, 0, 8)
-
-        # Model selection
+        # Model selection row (label, ComboBox, and description)
+        model_row = QHBoxLayout()
         model_label = QLabel("Modelo:")
+        model_label.setFixedWidth(60)  # Fixed label width for consistent spacing
         model_label.setObjectName("SettingsLabel")
         self.model_combo = QComboBox()
         self.model_combo.addItems(AVAILABLE_MODELS.keys())
         self.model_combo.setCurrentText(SELECTED_MODEL)
         self.model_combo.setObjectName("SettingsComboBox")
-        self.model_combo.setMaximumWidth(300)
+        self.model_combo.setFixedWidth(120)  # Adjusted for side-by-side layout
         self.model_combo.setToolTip("Selecione o modelo de transcrição a ser usado.")
-        transcription_form.addRow(model_label, self.model_combo)
+        model_row.addWidget(model_label)
+        model_row.addWidget(self.model_combo)
 
-        # Model description
+        # Model description beside ComboBox
         self.model_description = QLabel(self.get_model_description(SELECTED_MODEL))
         self.model_description.setWordWrap(True)
         self.model_description.setObjectName("SettingsDescription")
-        self.model_description.setMaximumWidth(300)
-        transcription_form.addRow("", self.model_description)
+        model_row.addWidget(self.model_description)
         self.model_combo.currentTextChanged.connect(self.update_model_description)
 
-        layout.addLayout(transcription_form)
+        transcription_layout.addLayout(model_row)
+        transcription_group.setLayout(transcription_layout)
+        layout.addWidget(transcription_group)
 
         # Header: Logging
         logging_header = QLabel("Logging")
@@ -105,12 +105,13 @@ class SettingsDialog(QDialog):
 
         # Logging level
         logging_label = QLabel("Nível de Log:")
+        logging_label.setFixedWidth(120)  # Fixed label width for consistent spacing
         logging_label.setObjectName("SettingsLabel")
         self.logging_combo = QComboBox()
         self.logging_combo.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
         self.logging_combo.setCurrentText(LOGGING_LEVEL)
         self.logging_combo.setObjectName("SettingsComboBox")
-        self.logging_combo.setMaximumWidth(300)
+        self.logging_combo.setFixedWidth(450)  # Force exact width
         self.logging_combo.setToolTip(
             "Nível de log para app.log:\n"
             "- DEBUG: Todos os detalhes (desenvolvimento).\n"
@@ -147,6 +148,7 @@ class SettingsDialog(QDialog):
 
         # Output folder
         output_label = QLabel("Pasta de Saída:")
+        output_label.setFixedWidth(120)  # Fixed label width for consistent spacing
         output_label.setObjectName("SettingsLabel")
         self.output_line_edit = QLineEdit(OUTPUT_FOLDER)
         self.output_line_edit.setReadOnly(True)
@@ -207,6 +209,7 @@ class SettingsDialog(QDialog):
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
+        app_logger.debug("SettingsDialog stylesheet applied: QComboBox#SettingsComboBox width should be 450px")
         app_logger.debug("SettingsDialog initialization completed")
         debug_logger.debug("SettingsDialog setup finished")
 
