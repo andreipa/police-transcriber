@@ -57,7 +57,7 @@ class SettingsDialog(QDialog):
         # Main layout
         layout = QVBoxLayout()
         layout.setSpacing(8)  # Windows 11 8px grid
-        layout.setContentsMargins(12, 27, 12, 12)  # Increased top margin to 24px
+        layout.setContentsMargins(12, 24, 12, 12)  # Increased top margin to 24px
 
         # Group: Configurações de Transcrição
         transcription_group = QGroupBox("Configurações de Transcrição")
@@ -91,27 +91,23 @@ class SettingsDialog(QDialog):
         transcription_group.setLayout(transcription_layout)
         layout.addWidget(transcription_group)
 
-        # Header: Logging
-        logging_header = QLabel("Logging")
-        logging_header.setObjectName("SettingsLabel")
-        layout.addWidget(logging_header)
+        # Group: Configurações de Log
+        logging_group = QGroupBox("Configurações de Log")
+        logging_group.setObjectName("SettingsGroupBox")
+        logging_layout = QVBoxLayout()
+        logging_layout.setSpacing(8)
+        logging_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Form layout for logging settings
-        logging_form = QFormLayout()
-        logging_form.setLabelAlignment(Qt.AlignRight)
-        logging_form.setFormAlignment(Qt.AlignLeft)
-        logging_form.setSpacing(8)
-        logging_form.setContentsMargins(0, 0, 0, 8)
-
-        # Logging level
+        # Logging level row (label, ComboBox, and description)
+        logging_row = QHBoxLayout()
         logging_label = QLabel("Nível de Log:")
-        logging_label.setFixedWidth(120)  # Fixed label width for consistent spacing
+        logging_label.setFixedWidth(60)  # Fixed label width for consistent spacing
         logging_label.setObjectName("SettingsLabel")
         self.logging_combo = QComboBox()
         self.logging_combo.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
         self.logging_combo.setCurrentText(LOGGING_LEVEL)
         self.logging_combo.setObjectName("SettingsComboBox")
-        self.logging_combo.setFixedWidth(450)  # Force exact width
+        self.logging_combo.setFixedWidth(120)  # Adjusted for side-by-side layout
         self.logging_combo.setToolTip(
             "Nível de log para app.log:\n"
             "- DEBUG: Todos os detalhes (desenvolvimento).\n"
@@ -120,9 +116,25 @@ class SettingsDialog(QDialog):
             "- ERROR: Erros recuperáveis (padrão).\n"
             "- CRITICAL: Erros graves que param o aplicativo."
         )
-        logging_form.addRow(logging_label, self.logging_combo)
+        logging_row.addWidget(logging_label)
+        logging_row.addWidget(self.logging_combo)
 
-        # Verbose logging
+        # Logging level description beside ComboBox
+        logging_description = QLabel(
+            "Define o nível de detalhe dos logs:\n"
+            "- DEBUG: Todos os detalhes (desenvolvimento).\n"
+            "- INFO: Eventos principais (monitoramento).\n"
+            "- WARNING: Avisos não críticos.\n"
+            "- ERROR: Erros recuperáveis (padrão).\n"
+            "- CRITICAL: Erros graves que param o aplicativo."
+        )
+        logging_description.setWordWrap(True)
+        logging_description.setObjectName("SettingsDescription")
+        logging_row.addWidget(logging_description)
+
+        logging_layout.addLayout(logging_row)
+
+        # Verbose logging checkbox inside the group box
         self.verbose_checkbox = QCheckBox("Habilitar Log Detalhado (debug.log)")
         self.verbose_checkbox.setChecked(VERBOSE)
         self.verbose_checkbox.setObjectName("SettingsCheckBox")
@@ -130,9 +142,10 @@ class SettingsDialog(QDialog):
             "Habilita logs detalhados em logs/debug.log para depuração. "
             "Útil para diagnosticar problemas, mas pode gerar arquivos grandes."
         )
-        logging_form.addRow("", self.verbose_checkbox)
+        logging_layout.addWidget(self.verbose_checkbox)
 
-        layout.addLayout(logging_form)
+        logging_group.setLayout(logging_layout)
+        layout.addWidget(logging_group)
 
         # Header: Saída e Atualizações
         output_header = QLabel("Saída e Atualizações")

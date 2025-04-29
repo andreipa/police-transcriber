@@ -159,9 +159,9 @@ QCheckBox#SettingsCheckBox {
 }
 
 QCheckBox#SettingsCheckBox::indicator {
-    width: 16px;
-    height: 16px;
-    border: 1px solid #585858;
+    width: 20px; /* Larger indicator for Windows 11 */
+    height: 20px;
+    border: 2px solid #585858; /* Thicker border */
     border-radius: 4px;
     background-color: #333333;
 }
@@ -169,10 +169,17 @@ QCheckBox#SettingsCheckBox::indicator {
 QCheckBox#SettingsCheckBox::indicator:checked {
     background-color: #0078d4;
     border-color: #0078d4;
+    image: url(assets/icons/checkmark.png); /* Placeholder for checkmark icon */
 }
 
 QCheckBox#SettingsCheckBox::indicator:hover {
     border-color: #0078d4;
+    background-color: #3c3c3c; /* Subtle hover effect */
+}
+
+QCheckBox#SettingsCheckBox::indicator:focus {
+    border: 2px solid #0078d4;
+    background-color: #3c3c3c;
 }
 
 /* Status Label */
