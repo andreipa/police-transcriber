@@ -110,7 +110,7 @@ QComboBox#SettingsComboBox QAbstractItemView::item:selected {
 
 /* Group Boxes */
 QGroupBox#SettingsGroupBox {
-    background-color: #999999; /* Slightly lighter than dialog background #2a2a2a */
+    background-color: #2a2a2a; /* Slightly lighter than dialog background */
     border: 1px solid #999999;
     border-radius: 4px;
     margin-top: 12px; /* Space for title */
