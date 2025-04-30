@@ -74,7 +74,7 @@ class WordEditorDialog(QDialog):
         layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
         bottom_buttons = QHBoxLayout()
-        self.save_button = QPushButton("Salvar Alterações")
+        self.save_button = QPushButton("Salvar")
         self.save_button.setToolTip("Salvar todas as alterações feitas na lista")
         self.save_button.setIcon(QIcon("assets/icons/save.png"))
         self.save_button.setObjectName("PrimaryButton")
