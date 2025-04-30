@@ -2,179 +2,236 @@
 #  All rights reserved.
 #  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
 
-import logging
+# tests/test_transcriber.py
+
+import os
 import unittest
+from datetime import datetime
 from unittest.mock import patch, mock_open, MagicMock
 
-# Import the module to test
-from core.transcriber import load_sensitive_words, format_time, transcribe_audio
+from config import OUTPUT_FOLDER, SENSITIVE_WORDS_FILE, LOCAL_MODEL_PATH, MODEL_FILES
+from core.transcriber import (
+    ensure_output_directory,
+    load_sensitive_words,
+    format_time,
+    transcribe_audio
+)
 
 
-# TODO: Add docstrings to the test cases and methods
 class TestTranscriber(unittest.TestCase):
     def setUp(self):
-        # Suppress logging to stderr during tests
-        logging.getLogger().handlers = []
-        logging.getLogger().setLevel(logging.CRITICAL)
-
-        # Mock configuration variables
-        self.patcher_config = patch.multiple(
-            'core.transcriber',
-            LOCAL_MODEL_PATH='mock_model_path',
-            SENSITIVE_WORDS_FILE='mock_sensitive_words.txt',
-            OUTPUT_FOLDER='mock_output_folder'
+        """Set up the test environment."""
+        self.output_folder = OUTPUT_FOLDER
+        self.sensitive_words_file = SENSITIVE_WORDS_FILE
+        self.local_model_path = LOCAL_MODEL_PATH
+        self.model_files = MODEL_FILES
+        self.test_file_path = "test_audio.mp3"
+        self.test_output_file = os.path.join(
+            self.output_folder,
+            f"test_audio-{datetime.now().strftime('%d-%m-%Y')}.txt"
         )
-        self.patcher_config.start()
 
-        # Ensure output folder creation is mocked
-        self.patcher_os_makedirs = patch('os.makedirs')
-        self.patcher_os_makedirs.start()
+    @patch("os.makedirs")
+    def test_ensure_output_directory_success(self, mock_makedirs):
+        """Test ensure_output_directory creates the output directory."""
+        ensure_output_directory()
+        mock_makedirs.assert_called_once_with(self.output_folder, exist_ok=True)
 
-    def tearDown(self):
-        # Stop all patchers
-        self.patcher_config.stop()
-        self.patcher_os_makedirs.stop()
+    @patch("os.makedirs")
+    def test_ensure_output_directory_exception(self, mock_makedirs):
+        """Test ensure_output_directory handles exceptions."""
+        mock_makedirs.side_effect = OSError("Permission denied")
+        with self.assertRaises(OSError):
+            ensure_output_directory()
+        mock_makedirs.assert_called_once_with(self.output_folder, exist_ok=True)
 
-    def test_load_sensitive_words_success(self):
-        # Mock file content
-        mock_file_content = "word1\nword2\n\nword3"
-        with patch('builtins.open', mock_open(read_data=mock_file_content)):
-            words = load_sensitive_words()
-        self.assertEqual(words, {'word1', 'word2', 'word3'})
+    @patch("os.path.exists")
+    @patch("builtins.open", new_callable=mock_open, read_data="word1\nword2\n\nword3")
+    def test_load_sensitive_words_success(self, mock_open_file, mock_exists):
+        """Test load_sensitive_words loads words correctly."""
+        mock_exists.return_value = True
+        words = load_sensitive_words()
+        self.assertEqual(words, {"word1", "word2", "word3"})
+        mock_exists.assert_called_once_with(self.sensitive_words_file)
+        mock_open_file.assert_called_once_with(self.sensitive_words_file, "r", encoding="utf-8")
 
-    def test_load_sensitive_words_file_not_found(self):
-        # Mock file opening to raise FileNotFoundError
-        with patch('builtins.open', side_effect=FileNotFoundError):
-            words = load_sensitive_words()
+    @patch("os.path.exists")
+    def test_load_sensitive_words_file_not_found(self, mock_exists):
+        """Test load_sensitive_words returns empty set when file is missing."""
+        mock_exists.return_value = False
+        words = load_sensitive_words()
         self.assertEqual(words, set())
+        mock_exists.assert_called_once_with(self.sensitive_words_file)
+
+    @patch("os.path.exists")
+    @patch("builtins.open")
+    def test_load_sensitive_words_exception(self, mock_open_file, mock_exists):
+        """Test load_sensitive_words handles exceptions."""
+        mock_exists.return_value = True
+        mock_open_file.side_effect = IOError("File read error")
+        words = load_sensitive_words()
+        self.assertEqual(words, set())
+        mock_exists.assert_called_once_with(self.sensitive_words_file)
+        mock_open_file.assert_called_once_with(self.sensitive_words_file, "r", encoding="utf-8")
 
     def test_format_time(self):
-        # Test various time inputs
-        test_cases = [
-            (0, "00:00:00"),
-            (59, "00:00:59"),
-            (60, "00:01:00"),
-            (3661, "01:01:01"),
-            (86399, "23:59:59")
-        ]
-        for seconds, expected in test_cases:
-            with self.subTest(seconds=seconds):
-                result = format_time(seconds)
-                self.assertEqual(result, expected)
+        """Test format_time converts seconds to HH:MM:SS format."""
+        self.assertEqual(format_time(3661), "01:01:01")  # 1 hour, 1 minute, 1 second
+        self.assertEqual(format_time(45), "00:00:45")  # 45 seconds
+        self.assertEqual(format_time(7200), "02:00:00")  # 2 hours
 
-    @patch('core.transcriber.WhisperModel')
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('os.stat')
-    def test_transcribe_audio_success_with_sensitive_words(self, mock_stat, mock_file, mock_whisper):
+    @patch("os.path.exists")
+    @patch("os.makedirs")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("core.transcriber.load_sensitive_words")
+    @patch("faster_whisper.WhisperModel")
+    def test_transcribe_audio_success_sensitive_words(
+            self, mock_whisper, mock_load_words, mock_open_file, mock_makedirs, mock_exists
+    ):
+        """Test transcribe_audio with sensitive words detected."""
+        # Mock file system
+        mock_exists.side_effect = [True] + [True] * len(self.model_files)  # Input file and model files exist
+        mock_makedirs.return_value = None
+
         # Mock sensitive words
-        with patch('core.transcriber.load_sensitive_words', return_value={'badword'}):
-            # Mock WhisperModel
-            mock_model = MagicMock()
-            mock_segment1 = MagicMock(text="This is a badword", start=0, end=2)
-            mock_segment2 = MagicMock(text="Normal text", start=2, end=4)
-            mock_model.transcribe.return_value = ([mock_segment1, mock_segment2], MagicMock(duration=4.0))
-            mock_whisper.return_value = mock_model
+        mock_load_words.return_value = {"sensitive"}
 
-            # Mock os.stat to indicate non-empty file
-            mock_stat.return_value.st_size = 100
+        # Mock Whisper model
+        mock_segment = MagicMock()
+        mock_segment.text = "This is a sensitive text"
+        mock_segment.start = 0.0
+        mock_segment.end = 5.0
+        mock_info = MagicMock()
+        mock_info.duration = 10.0
+        mock_whisper.return_value.transcribe.return_value = ([mock_segment], mock_info)
 
-            # Mock progress and update callbacks
-            progress_callback = MagicMock()
-            update_callback = MagicMock()
+        # Callbacks
+        progress_callback = MagicMock()
+        update_message_callback = MagicMock()
+        stop_flag = MagicMock(return_value=False)
 
-            # Run transcription
-            result = transcribe_audio(
-                file_path='test.mp3',
-                on_progress=progress_callback,
-                on_update_message=update_callback
-            )
+        result = transcribe_audio(
+            self.test_file_path,
+            on_progress=progress_callback,
+            on_update_message=update_message_callback,
+            stop_flag=stop_flag
+        )
 
-            # Assertions
-            self.assertTrue(result)
-            update_callback.assert_any_call("Carregando modelo...")
-            update_callback.assert_any_call("Transcrição concluída com sucesso.")
-            progress_callback.assert_called_with(100)
-            mock_file().write.assert_any_call("[00:00:00 - 00:00:02] This is a badword\n")
+        self.assertTrue(result)
+        mock_makedirs.assert_called_once_with(self.output_folder, exist_ok=True)
+        mock_load_words.assert_called_once()
+        mock_exists.assert_any_call(self.test_file_path)
+        for file_name in self.model_files:
+            mock_exists.assert_any_call(os.path.join(self.local_model_path, file_name))
+        update_message_callback.assert_any_call("Carregando modelo...")
+        update_message_callback.assert_any_call("Transcrição concluída com sucesso")
+        progress_callback.assert_called_with(50)  # 5.0/10.0 * 100
+        mock_open_file.assert_called_with(self.test_output_file, "w", encoding="utf-8")
+        mock_open_file().write.assert_called_with("[00:00:00 - 00:00:05] This is a sensitive text\n")
 
-    @patch('core.transcriber.WhisperModel')
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('os.stat')
-    def test_transcribe_audio_no_sensitive_words(self, mock_stat, mock_file, mock_whisper):
-        # Mock sensitive words
-        with patch('core.transcriber.load_sensitive_words', return_value={'badword'}):
-            # Mock WhisperModel
-            mock_model = MagicMock()
-            mock_segment = MagicMock(text="Normal text", start=0, end=2)
-            mock_model.transcribe.return_value = ([mock_segment], MagicMock(duration=2.0))
-            mock_whisper.return_value = mock_model
+    @patch("os.path.exists")
+    @patch("os.makedirs")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("core.transcriber.load_sensitive_words")
+    @patch("faster_whisper.WhisperModel")
+    def test_transcribe_audio_no_sensitive_words(
+            self, mock_whisper, mock_load_words, mock_open_file, mock_makedirs, mock_exists
+    ):
+        """Test transcribe_audio with no sensitive words detected."""
+        mock_exists.side_effect = [True] + [True] * len(self.model_files)
+        mock_makedirs.return_value = None
+        mock_load_words.return_value = {"sensitive"}
+        mock_segment = MagicMock()
+        mock_segment.text = "This is a safe text"
+        mock_segment.start = 0.0
+        mock_segment.end = 5.0
+        mock_info = MagicMock()
+        mock_info.duration = 10.0
+        mock_whisper.return_value.transcribe.return_value = ([mock_segment], mock_info)
 
-            # Mock os.stat to indicate empty file
-            mock_stat.return_value.st_size = 0
+        result = transcribe_audio(self.test_file_path)
+        self.assertTrue(result)
+        mock_open_file.assert_called_with(self.test_output_file, "w", encoding="utf-8")
+        mock_open_file().write.assert_called_with("Nenhuma palavra sensível encontrada.")
 
-            # Mock progress and update callbacks
-            progress_callback = MagicMock()
-            update_callback = MagicMock()
+    @patch("os.path.exists")
+    def test_transcribe_audio_file_not_found(self, mock_exists):
+        """Test transcribe_audio handles missing input file."""
+        mock_exists.return_value = False
+        update_message_callback = MagicMock()
+        result = transcribe_audio(self.test_file_path, on_update_message=update_message_callback)
+        self.assertFalse(result)
+        mock_exists.assert_called_once_with(self.test_file_path)
+        update_message_callback.assert_called_once_with(f"Arquivo não encontrado: {self.test_file_path}")
 
-            # Run transcription
-            result = transcribe_audio(
-                file_path='test.mp3',
-                on_progress=progress_callback,
-                on_update_message=update_callback
-            )
+    @patch("os.path.exists")
+    def test_transcribe_audio_invalid_format(self, mock_exists):
+        """Test transcribe_audio handles invalid file format."""
+        mock_exists.return_value = True
+        update_message_callback = MagicMock()
+        result = transcribe_audio("test_audio.wav", on_update_message=update_message_callback)
+        self.assertFalse(result)
+        mock_exists.assert_called_once_with("test_audio.wav")
+        update_message_callback.assert_called_once_with("Formato de arquivo inválido. Use MP3.")
 
-            # Assertions
-            self.assertTrue(result)
-            mock_file().write.assert_called_with("Nenhuma palavra sensível encontrada.")
-            update_callback.assert_any_call("Transcrição concluída com sucesso.")
-            progress_callback.assert_called_with(100)
+    @patch("os.path.exists")
+    def test_transcribe_audio_missing_model_file(self, mock_exists):
+        """Test transcribe_audio handles missing model file."""
+        mock_exists.side_effect = [True, False] + [True] * (len(self.model_files) - 1)
+        update_message_callback = MagicMock()
+        result = transcribe_audio(self.test_file_path, on_update_message=update_message_callback)
+        self.assertFalse(result)
+        mock_exists.assert_any_call(self.test_file_path)
+        mock_exists.assert_any_call(os.path.join(self.local_model_path, self.model_files[0]))
+        update_message_callback.assert_called_once_with(f"Arquivo de modelo ausente: {os.path.join(self.local_model_path, self.model_files[0])}")
 
-    @patch('core.transcriber.WhisperModel')
-    @patch('builtins.open', new_callable=mock_open)
-    def test_transcribe_audio_cancelled(self, mock_file, mock_whisper):
-        # Mock sensitive words
-        with patch('core.transcriber.load_sensitive_words', return_value={'badword'}):
-            # Mock WhisperModel
-            mock_model = MagicMock()
-            mock_segment = MagicMock(text="This is a badword", start=0, end=2)
-            mock_model.transcribe.return_value = ([mock_segment], MagicMock(duration=2.0))
-            mock_whisper.return_value = mock_model
+    @patch("os.path.exists")
+    @patch("os.makedirs")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("core.transcriber.load_sensitive_words")
+    @patch("faster_whisper.WhisperModel")
+    def test_transcribe_audio_cancelled(
+            self, mock_whisper, mock_load_words, mock_open_file, mock_makedirs, mock_exists
+    ):
+        """Test transcribe_audio handles cancellation."""
+        mock_exists.side_effect = [True] + [True] * len(self.model_files)
+        mock_makedirs.return_value = None
+        mock_load_words.return_value = {"sensitive"}
+        mock_segment = MagicMock()
+        mock_segment.text = "This is a sensitive text"
+        mock_segment.start = 0.0
+        mock_segment.end = 5.0
+        mock_info = MagicMock()
+        mock_info.duration = 10.0
+        mock_whisper.return_value.transcribe.return_value = ([mock_segment], mock_info)
+        stop_flag = MagicMock(return_value=True)
+        update_message_callback = MagicMock()
 
-            # Mock stop_flag to return True (cancel)
-            stop_flag = MagicMock(return_value=True)
-            update_callback = MagicMock()
+        result = transcribe_audio(
+            self.test_file_path,
+            stop_flag=stop_flag,
+            on_update_message=update_message_callback
+        )
 
-            # Run transcription
-            result = transcribe_audio(
-                file_path='test.mp3',
-                on_update_message=update_callback,
-                stop_flag=stop_flag
-            )
+        self.assertEqual(result, "cancelled")
+        update_message_callback.assert_any_call("Transcrição cancelada pelo usuário")
 
-            # Assertions
-            self.assertEqual(result, "cancelled")
-            update_callback.assert_called_with("Transcrição cancelada pelo usuário.")
+    @patch("os.path.exists")
+    @patch("os.makedirs")
+    @patch("faster_whisper.WhisperModel")
+    def test_transcribe_audio_exception(
+            self, mock_whisper, mock_makedirs, mock_exists
+    ):
+        """Test transcribe_audio handles exceptions."""
+        mock_exists.side_effect = [True] + [True] * len(self.model_files)
+        mock_makedirs.return_value = None
+        mock_whisper.side_effect = Exception("Model error")
+        update_message_callback = MagicMock()
 
-    @patch('core.transcriber.WhisperModel')
-    @patch('builtins.open', new_callable=mock_open)
-    def test_transcribe_audio_model_failure(self, mock_file, mock_whisper):
-        # Mock sensitive words
-        with patch('core.transcriber.load_sensitive_words', return_value={'badword'}):
-            # Mock WhisperModel to raise an exception
-            mock_whisper.side_effect = Exception("Model loading failed")
-
-            # Mock update callback
-            update_callback = MagicMock()
-
-            # Run transcription
-            result = transcribe_audio(
-                file_path='test.mp3',
-                on_update_message=update_callback
-            )
-
-            # Assertions
-            self.assertFalse(result)
-            update_callback.assert_called_with("Erro durante a transcrição.")
+        result = transcribe_audio(self.test_file_path, on_update_message=update_message_callback)
+        self.assertFalse(result)
+        update_message_callback.assert_any_call("Erro durante a transcrição: Model error")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

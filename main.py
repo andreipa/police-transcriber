@@ -2,67 +2,175 @@
 #  All rights reserved.
 #  This source code is the intellectual property of TechDev Andrade Ltda and is intended for private use, research, or internal projects only. Redistribution and use in source or binary forms are not permitted without prior written permission.
 
-import logging
+"""Main entry point for the Police Transcriber application."""
+
 import os
 import sys
 import traceback
+from datetime import datetime
+from pathlib import Path
 
 from PyQt5.QtCore import QTimer, QtMsgType, qInstallMessageHandler
-from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox, QFileDialog
 
-from config import AVAILABLE_MODELS, SELECTED_MODEL, HF_TOKEN
+from config import (
+    app_logger,
+    debug_logger,
+    VERBOSE,
+    LOG_FOLDER,
+    OUTPUT_FOLDER,
+    load_config,
+    save_config,
+)
 from core.model_downloader import ensure_model_available
 from gui.main_window import MainWindow
 from gui.splash import SplashScreen
 
 
-def configure_logging() -> None:
-    """Configure logging to capture debug, warnings, and errors in a log file."""
-    os.makedirs("logs", exist_ok=True)
-    logging.basicConfig(
-        filename="logs/app.log",
-        level=logging.DEBUG,
-        format="%(asctime)s [%(levelname)s] %(message)s"
-    )
-    logging.debug("Logging configured")
+def rotate_log_file(log_file: str, max_size: int = 10 * 1024 * 1024) -> None:
+    """Rotate the log file if it exceeds the maximum size.
+
+    Args:
+        log_file: Path to the log file.
+        max_size: Maximum file size in bytes (default: 10MB).
+    """
+    if not os.path.exists(log_file) or os.path.getsize(log_file) <= max_size:
+        return
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    new_file = os.path.join(os.path.dirname(log_file), f"app_{timestamp}.log")
+    try:
+        os.rename(log_file, new_file)
+        debug_logger.debug(f"Rotated log file {log_file} to {new_file} due to size exceeding {max_size} bytes")
+    except Exception as e:
+        app_logger.error(f"Failed to rotate log file {log_file}: {e}")
 
 
 def qt_message_handler(msg_type: QtMsgType, context: object, msg: str) -> None:
-    """Handle Qt messages and log them."""
+    """Handle Qt messages and log them using configured loggers.
+
+    Args:
+        msg_type: Type of Qt message.
+        context: Message context (unused).
+        msg: The message content.
+    """
+    msg = f"Qt Message: {msg}"
     if msg_type == QtMsgType.QtDebugMsg:
-        logging.debug(f"Qt Debug: {msg}")
+        debug_logger.debug(msg)
     elif msg_type == QtMsgType.QtInfoMsg:
-        logging.info(f"Qt Info: {msg}")
+        app_logger.info(msg)
     elif msg_type == QtMsgType.QtWarningMsg:
-        logging.warning(f"Qt Warning: {msg}")
+        app_logger.warning(msg)
     elif msg_type == QtMsgType.QtCriticalMsg:
-        logging.error(f"Qt Critical: {msg}")
+        app_logger.error(msg)
     elif msg_type == QtMsgType.QtFatalMsg:
-        logging.critical(f"Qt Fatal: {msg}")
+        app_logger.critical(msg)
     else:
-        logging.info(f"Qt Unknown: {msg}")
+        app_logger.info(msg)
+
+
+def prompt_output_folder(parent) -> str:
+    """Prompt the user to select an output folder on first run.
+
+    Args:
+        parent: The parent widget for the file dialog.
+
+    Returns:
+        The selected folder path or the default OUTPUT_FOLDER if cancelled.
+    """
+    folder = QFileDialog.getExistingDirectory(
+        parent,
+        "Selecionar Pasta de Saída para Transcrições",
+        OUTPUT_FOLDER or os.path.expanduser("~"),
+        QFileDialog.ShowDirsOnly
+    )
+    if folder:
+        app_logger.info(f"Selected output folder on first run: {folder}")
+        debug_logger.debug(f"First-run output folder set to: {folder}")
+        return folder
+    app_logger.info("No output folder selected, using default")
+    debug_logger.debug(f"Using default output folder: {OUTPUT_FOLDER}")
+    return OUTPUT_FOLDER
+
+
+def load_stylesheet(app: QApplication) -> None:
+    """Load and apply the stylesheet from assets/styles.qss.
+
+    Args:
+        app: The QApplication instance to apply the stylesheet to.
+    """
+    try:
+        # Get the directory of the current script or executable
+        if getattr(sys, 'frozen', False):
+            # Running as a packaged executable (e.g., PyInstaller)
+            base_path = Path(sys.executable).parent
+        else:
+            # Running from source
+            base_path = Path(__file__).parent
+
+        stylesheet_path = base_path / "assets" / "styles" / "styles.qss"
+        if not stylesheet_path.exists():
+            app_logger.warning(f"Stylesheet not found at {stylesheet_path}")
+            debug_logger.debug(f"Missing stylesheet: {stylesheet_path}")
+            return
+
+        with open(stylesheet_path, 'r', encoding='utf-8') as file:
+            stylesheet = file.read()
+            app.setStyleSheet(stylesheet)
+            app_logger.debug(f"Loaded stylesheet from {stylesheet_path}")
+            debug_logger.debug("Stylesheet applied successfully")
+    except Exception as e:
+        app_logger.warning(f"Failed to load stylesheet: {e}")
+        debug_logger.debug(f"Stylesheet loading error: {str(e)}")
 
 
 def main() -> None:
     """Initialize the application, check model availability, and display the main window."""
-    configure_logging()
-    logging.debug("Starting application")
+    # Load configuration
+    config = load_config()
+    app_logger.info("Starting Police Transcriber application")
+    debug_logger.debug(f"Loaded configuration: {config}")
 
-    # Disable SUPPRESS_QT_WARNINGS for debugging
+    # Rotate log files
+    rotate_log_file(os.path.join(LOG_FOLDER, "app.log"))
+    if VERBOSE:
+        rotate_log_file(os.path.join(LOG_FOLDER, "debug.log"))
+
+    # Initialize QApplication and load stylesheet
+    app = QApplication(sys.argv)
+    load_stylesheet(app)
+    debug_logger.debug("QApplication initialized")
+
+    # Configure Qt logging for debugging
     os.environ["QT_LOGGING_RULES"] = "qt5.debug=true"
-    logging.debug("Qt logging rules set")
+    debug_logger.debug("Qt logging rules set")
 
     # Redirect Qt messages to logger
     qInstallMessageHandler(qt_message_handler)
-    logging.debug("Qt message handler installed")
+    debug_logger.debug("Qt message handler installed")
 
-    app = QApplication(sys.argv)
-    logging.debug("QApplication initialized")
-
-    splash = SplashScreen()
-    splash.show()
-    splash.setMessage("Verificando modelo...")
-    logging.debug("Splash screen displayed")
+    # Prompt for output folder on first run
+    if not os.path.exists(OUTPUT_FOLDER):
+        debug_logger.debug("Output folder does not exist, prompting user")
+        splash = SplashScreen()
+        splash.show()
+        splash.setMessage("Configurando pasta de saída...")
+        output_folder = prompt_output_folder(splash)
+        save_config(
+            selected_model=config["selected_model"],
+            logging_level=config["logging_level"],
+            verbose=config["verbose"],
+            output_folder=output_folder,
+            check_for_updates=config["check_for_updates"],
+        )
+        splash.close()
+        debug_logger.debug("Initial output folder prompt completed")
+    else:
+        # Show splash screen
+        splash = SplashScreen()
+        splash.show()
+        splash.setMessage("Verificando modelo...")
+        debug_logger.debug("Splash screen displayed with message: Verificando modelo...")
 
     # Keep a global reference to MainWindow to prevent garbage collection
     global main_window
@@ -70,56 +178,67 @@ def main() -> None:
 
     def continue_after_model() -> None:
         """Open the main window if the model is available, or exit on failure."""
-        logging.debug("Entering continue_after_model")
+        debug_logger.debug("Entering continue_after_model")
         try:
             if ensure_model_available():
-                logging.debug("Model available, loading interface")
+                app_logger.info("Model available, loading interface")
+                debug_logger.debug("Model verification successful")
                 splash.setMessage("Carregando interface...")
+                debug_logger.debug("Splash message updated: Carregando interface...")
                 global main_window
                 main_window = MainWindow()
-                logging.debug("MainWindow created")
+                debug_logger.debug("MainWindow created")
                 splash.close()
-                logging.debug("Splash screen closed")
+                debug_logger.debug("Splash screen closed")
                 main_window.show()
-                logging.debug("MainWindow shown")
+                app_logger.info("Main window displayed")
+                debug_logger.debug("MainWindow shown")
             else:
-                logging.error("Model download failed")
+                app_logger.error("Model download failed")
+                debug_logger.debug("Model download failed, showing error message")
                 QMessageBox.critical(
                     splash,
                     "Modelo Não Disponível",
                     "Falha ao baixar o modelo de transcrição. Verifique sua conexão com a internet e tente novamente."
                 )
                 splash.close()
-                logging.debug("Splash screen closed after error")
+                debug_logger.debug("Splash screen closed after error")
                 sys.exit(1)
         except Exception as e:
-            logging.error(f"Error in continue_after_model: {e}", exc_info=True)
+            app_logger.error(f"Error in continue_after_model: {e}", exc_info=True)
+            debug_logger.debug(f"Exception in continue_after_model: {traceback.format_exc()}")
             splash.close()
+            debug_logger.debug("Splash screen closed after exception")
             sys.exit(1)
 
     def run_model_download() -> None:
         """Trigger model download and proceed to main window."""
-        logging.debug("Starting model download")
-        token = HF_TOKEN if AVAILABLE_MODELS[SELECTED_MODEL]["requires_token"] else None
+        debug_logger.debug("Starting model download")
         success = ensure_model_available(
             on_status=splash.setMessage,
-            on_progress=splash.setProgress,
-            token=token
+            on_progress=splash.setProgress
         )
-        logging.debug(f"Model download result: {success}")
+        app_logger.info(f"Model download result: {success}")
+        debug_logger.debug(f"Model download completed with success: {success}")
         QTimer.singleShot(0, continue_after_model)
 
+    # Schedule model download
     QTimer.singleShot(100, run_model_download)
+    debug_logger.debug("Scheduled model download")
 
     try:
-        logging.debug("Entering Qt event loop")
+        app_logger.info("Entering Qt event loop")
+        debug_logger.debug("Starting Qt event loop")
         result = app.exec_()
-        logging.debug(f"Qt event loop exited with code: {result}")
+        app_logger.info(f"Qt event loop exited with code: {result}")
+        debug_logger.debug(f"Application event loop exited with code: {result}")
         sys.exit(result)
     except Exception as e:
-        logging.error(f"Unhandled exception in application loop: {e}", exc_info=True)
+        app_logger.error(f"Unhandled exception in application loop: {e}", exc_info=True)
+        debug_logger.debug(f"Unhandled exception in application loop: {traceback.format_exc()}")
         traceback.print_exc()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
