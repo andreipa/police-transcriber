@@ -613,7 +613,7 @@ class MainWindow(QWidget):
 
     def open_help_link(self) -> None:
         """Open the application's online help page in the default web browser."""
-        url = "https://github.com/andreipa/police-transcriber"
+        url = "https://github.com/andreipa/police-transcriber/wiki"
         try:
             QDesktopServices.openUrl(QUrl(url))
             app_logger.info("Opened help link")

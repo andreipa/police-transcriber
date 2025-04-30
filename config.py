@@ -14,7 +14,7 @@ from typing import Dict, Any
 APP_NAME = "Police Transcriber"
 """Name of the application."""
 
-VERSION = "v0.1.0-alpha"
+VERSION = "v1.0.0-beta"
 """Current version of the application."""
 
 SLOGAN_PT = "Detecção Automática de Conversas Ilícitas com IA"
