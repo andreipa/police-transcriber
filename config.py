@@ -57,7 +57,7 @@ DEFAULT_CONFIG = {
     "selected_model": "large-v2",
     "logging_level": "ERROR",
     "verbose": True,
-    "output_folder": "c:/PoliceTranscriber/Output/" if os.name == "nt" else "/Users/PoliceTranscriber/Output/",
+    "output_folder": os.path.join(os.path.dirname(__file__), "output"),
     "check_for_updates": True,
 }
 """Default configuration settings."""
@@ -90,6 +90,19 @@ debug_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(me
 debug_logger.addHandler(debug_handler)
 debug_logger.setLevel(logging.DEBUG)  # Debug logger always logs at DEBUG level
 
+
+def is_model_downloaded(model: str) -> bool:
+    """Check if all required model files are downloaded.
+
+    Args:
+        model: The model name to check.
+
+    Returns:
+        True if all model files exist, False otherwise.
+    """
+    model_path = os.path.join("models", model)
+    required_files = AVAILABLE_MODELS[model]["files"]
+    return all(os.path.exists(os.path.join(model_path, file)) for file in required_files)
 
 def load_config() -> Dict[str, Any]:
     """Load configuration from config.json, creating it with defaults if it doesn't exist.
