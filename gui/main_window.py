@@ -5,6 +5,7 @@
 """Main application window for the Police Transcriber, providing a GUI for audio transcription."""
 
 import os
+import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -36,10 +37,7 @@ from config import (
     APP_NAME,
     GITHUB_RELEASES_URL,
     LOG_FOLDER,
-    OUTPUT_FOLDER,
-    SELECTED_MODEL,
     VERSION,
-    CHECK_FOR_UPDATES,
     is_model_downloaded,
     app_logger,
     debug_logger,
@@ -507,17 +505,28 @@ class MainWindow(QWidget):
                 QMessageBox.warning(self, "Aviso", "Nenhuma transcrição encontrada para backup.")
                 return
 
-            # Create a ZIP file with timestamp
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            zip_path = os.path.join(OUTPUT_FOLDER, f"transcriptions_backup_{timestamp}.zip")
             files_to_backup = [f for f in os.listdir(OUTPUT_FOLDER) if f.endswith(".txt")]
-
             if not files_to_backup:
                 app_logger.warning("No transcription files found for backup")
                 debug_logger.debug("No .txt files found in output folder for backup")
                 QMessageBox.warning(self, "Aviso", "Nenhuma transcrição encontrada para backup.")
                 return
 
+            # Prompt user for save location and filename
+            default_filename = f"transcriptions_backup_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.zip"
+            zip_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Salvar Backup das Transcrições",
+                os.path.join(os.path.expanduser("~"), default_filename),
+                "ZIP Files (*.zip)"
+            )
+
+            if not zip_path:
+                app_logger.info("Backup cancelled by user: No save location selected")
+                debug_logger.debug("User cancelled backup file selection")
+                return
+
+            # Create ZIP file at user-specified location
             with ZipFile(zip_path, "w") as zip_file:
                 for file_name in files_to_backup:
                     file_path = os.path.join(OUTPUT_FOLDER, file_name)
@@ -555,16 +564,48 @@ class MainWindow(QWidget):
     def open_settings_dialog(self) -> None:
         """Open the settings dialog to configure application options."""
         try:
+            from config import load_config
+            config = load_config()  # Reload configuration before opening dialog
+            global SELECTED_MODEL, OUTPUT_FOLDER, LOGGING_LEVEL, VERBOSE, CHECK_FOR_UPDATES
+            SELECTED_MODEL = config["selected_model"]
+            OUTPUT_FOLDER = config["output_folder"]
+            LOGGING_LEVEL = config["logging_level"]
+            VERBOSE = config["verbose"]
+            CHECK_FOR_UPDATES = config["check_for_updates"]
+
             dialog = SettingsDialog(self)
             if dialog.exec_():
+                config = load_config()  # Reload configuration after saving
+                SELECTED_MODEL = config["selected_model"]
+                OUTPUT_FOLDER = config["output_folder"]
+                LOGGING_LEVEL = config["logging_level"]
+                VERBOSE = config["verbose"]
+                CHECK_FOR_UPDATES = config["check_for_updates"]
                 self.status_bar.showMessage(f"Modelo carregado: {SELECTED_MODEL}")
-                self.update_transcription_button_state()  # Update button state after settings change
+                self.update_transcription_button_state()  # Update button state
+                # Check if the new model is downloaded
+                if not is_model_downloaded(SELECTED_MODEL):
+                    msg_box = QMessageBox(self)
+                    msg_box.setWindowTitle("Reinicialização Necessária")
+                    msg_box.setText("O novo modelo selecionado não está baixado. O aplicativo será fechado para baixar e aplicar as alterações.")
+                    msg_box.setStandardButtons(QMessageBox.Ok)
+                    msg_box.accepted.connect(self.close_application)
+                    msg_box.exec_()
             app_logger.info("Opened settings dialog")
             debug_logger.debug("SettingsDialog shown")
         except Exception as e:
             app_logger.error(f"Failed to open settings dialog: {e}")
             debug_logger.debug(f"Settings dialog error: {str(e)}")
             QMessageBox.critical(self, "Erro", "Não foi possível abrir as configurações.")
+
+        def close_application(self) -> None:
+            """Close and restart the application."""
+            if self.thread and self.thread.isRunning():
+                self.stop_transcription()
+            app_logger.info("Restarting application after settings save")
+            debug_logger.debug("Application restarting triggered from settings dialog")
+            python = sys.executable
+            os.execl(python, python, *sys.argv)
 
     def start_transcription(self) -> None:
         """Start the transcription process for queued files after verifying model availability."""

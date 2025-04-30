@@ -1,7 +1,7 @@
 {
     "selected_model": "base",
-    "logging_level": "DEBUG",
-    "verbose": true,
+    "logging_level": "INFO",
+    "verbose": false,
     "output_folder": "output",
-    "check_for_updates": false
+    "check_for_updates": true
 }

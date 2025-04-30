@@ -6,6 +6,7 @@ QWidget#MainWindow, QDialog#SettingsDialog, QDialog#WordEditorDialog, QDialog#Ab
     color: #f3f3f3;
     border-radius: 8px;
     border: 1px solid #2d2d2d;
+    font-family: "Helvetica", "Arial", sans-serif;
 }
 
 /* Labels */
