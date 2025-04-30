@@ -11,7 +11,6 @@ from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -121,35 +120,24 @@ class SettingsDialog(QDialog):
         self.logging_combo.currentTextChanged.connect(self.update_logging_description)
 
         logging_layout.addLayout(logging_row)
-
-        # Verbose logging checkbox inside the group box
-        #    self.verbose_checkbox = QCheckBox("Habilitar Log Detalhado (debug.log)")
-        #    self.verbose_checkbox.setChecked(VERBOSE)
-        #    self.verbose_checkbox.setObjectName("SettingsCheckBox")
-        #    self.verbose_checkbox.setToolTip(
-        #        "Habilita logs detalhados em logs/debug.log para depuração. "
-        #        "Útil para diagnosticar problemas, mas pode gerar arquivos grandes."
-        #    )
-        #    logging_layout.addWidget(self.verbose_checkbox)
-
         logging_group.setLayout(logging_layout)
         layout.addWidget(logging_group)
 
-        # Header: Saída e Atualizações
-        output_header = QLabel("Saída e Atualizações")
-        output_header.setObjectName("SettingsLabel")
-        layout.addWidget(output_header)
+        # Group: Saída
+        output_group = QGroupBox("Saída")
+        output_group.setObjectName("SettingsGroupBox")
+        output_layout = QVBoxLayout()
+        output_layout.setSpacing(8)
+        output_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Form layout for output and updates
+        # Output folder row
         output_form = QFormLayout()
         output_form.setLabelAlignment(Qt.AlignRight)
         output_form.setFormAlignment(Qt.AlignLeft)
         output_form.setSpacing(8)
-        output_form.setContentsMargins(0, 0, 0, 8)
 
-        # Output folder
         output_label = QLabel("Pasta de Saída:")
-        output_label.setFixedWidth(120)  # Fixed label width for consistent spacing
+        output_label.setFixedWidth(105)  # Fixed label width for consistent spacing
         output_label.setObjectName("SettingsLabel")
         self.output_line_edit = QLineEdit(OUTPUT_FOLDER)
         self.output_line_edit.setReadOnly(True)
@@ -159,24 +147,48 @@ class SettingsDialog(QDialog):
         output_button = QPushButton("Selecionar")
         output_button.setObjectName("PrimaryButton")
         output_button.setMaximumWidth(150)
-        output_button.setIcon(QIcon("assets/icons/folder.png"))  # Added icon for clarity
+        output_button.setIcon(QIcon("assets/icons/folder.png"))
         output_button.clicked.connect(self.select_output_folder)
-        output_layout = QHBoxLayout()
-        output_layout.setSpacing(8)
-        output_layout.addWidget(self.output_line_edit)
-        output_layout.addWidget(output_button)
-        output_form.addRow(output_label, output_layout)
+        output_row = QHBoxLayout()
+        output_row.setSpacing(8)
+        output_row.addWidget(self.output_line_edit)
+        output_row.addWidget(output_button)
+        output_form.addRow(output_label, output_row)
 
-        # Check for updates
-        self.updates_checkbox = QCheckBox("Verificar Atualizações ao Iniciar")
-        self.updates_checkbox.setChecked(CHECK_FOR_UPDATES)
-        self.updates_checkbox.setObjectName("SettingsCheckBox")
-        self.updates_checkbox.setToolTip(
-            "Verifica automaticamente se há novas versões do aplicativo ao iniciar."
-        )
-        output_form.addRow("", self.updates_checkbox)
+        output_layout.addLayout(output_form)
+        output_group.setLayout(output_layout)
+        layout.addWidget(output_group)
 
-        layout.addLayout(output_form)
+        # Group: Atualizações
+        updates_group = QGroupBox("Atualizações")
+        updates_group.setObjectName("SettingsGroupBox")
+        updates_layout = QVBoxLayout()
+        updates_layout.setSpacing(8)
+        updates_layout.setContentsMargins(8, 8, 8, 8)
+
+        # Check for updates row
+        updates_form = QFormLayout()
+        updates_form.setLabelAlignment(Qt.AlignRight)
+        updates_form.setFormAlignment(Qt.AlignLeft)
+        updates_form.setSpacing(8)
+
+        updates_label = QLabel("Verificar Atualizações:")
+        updates_label.setFixedWidth(150)  # Match the width of other labels
+        updates_label.setObjectName("SettingsLabel")
+        self.updates_combo = QComboBox()
+        self.updates_combo.addItems(["Sim", "Não"])
+        self.updates_combo.setCurrentText("Sim" if CHECK_FOR_UPDATES else "Não")
+        self.updates_combo.setObjectName("SettingsComboBox")
+        self.updates_combo.setFixedWidth(115)  # Match the width of other ComboBoxes
+        self.updates_combo.setToolTip("Verifica automaticamente se há novas versões do aplicativo ao iniciar.")
+        updates_row = QHBoxLayout()
+        updates_row.addWidget(self.updates_combo)
+        updates_row.addStretch()
+        updates_form.addRow(updates_label, updates_row)
+
+        updates_layout.addLayout(updates_form)
+        updates_group.setLayout(updates_layout)
+        layout.addWidget(updates_group)
 
         # Status label for feedback
         self.status_label = QLabel("")
@@ -287,16 +299,15 @@ class SettingsDialog(QDialog):
         try:
             self.model_combo.setCurrentText("medium")  # Balanced default
             self.logging_combo.setCurrentText("ERROR")  # Standard for production
-            self.verbose_checkbox.setChecked(False)  # Minimize logging
             self.output_line_edit.setText(os.path.expanduser("~/PoliceTranscriber/output"))  # User-specific default
-            self.updates_checkbox.setChecked(True)  # Encourage updates
+            self.updates_combo.setCurrentText("Sim")  # Encourage updates
             self.update_model_description("medium")
             self.status_label.setText("Configurações restauradas!")
             self.status_label.setProperty("error", False)
             self.status_label.style().unpolish(self.status_label)
             self.status_label.style().polish(self.status_label)
             app_logger.info("Restored default settings")
-            debug_logger.debug("Default settings restored: model=medium, logging_level=ERROR, verbose=False, "
+            debug_logger.debug("Default settings restored: model=medium, logging_level=ERROR, "
                                "output_folder=~/PoliceTranscriber/output, check_for_updates=True")
         except Exception as e:
             app_logger.error(f"Failed to restore default settings: {e}")
@@ -312,9 +323,10 @@ class SettingsDialog(QDialog):
         try:
             selected_model = self.model_combo.currentText()
             logging_level = self.logging_combo.currentText()
-            verbose = self.verbose_checkbox.isChecked()
+            # Automatically enable debug.log if logging level is DEBUG
+            verbose = (logging_level == "DEBUG")
             output_folder = self.output_line_edit.text()
-            check_for_updates = self.updates_checkbox.isChecked()
+            check_for_updates = (self.updates_combo.currentText() == "Sim")
 
             # Validate output folder
             if not os.path.isdir(output_folder):

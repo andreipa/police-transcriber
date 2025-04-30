@@ -136,9 +136,10 @@ QLineEdit#SettingsLineEdit {
     border: 1px solid #585858;
     border-radius: 4px;
     padding: 4px 8px;
-    min-height: 32px;
+    min-height: 24px;
+    width:100px; /* Adjusted width for better visibility */
     font-family: "Helvetica", "Segoe UI", Arial, sans-serif;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 QLineEdit#SettingsLineEdit:hover, QLineEdit#SettingsLineEdit:focus {
