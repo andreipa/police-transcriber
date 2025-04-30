@@ -1,5 +1,5 @@
 {
-    "selected_model": "base",
+    "selected_model": "large-v2",
     "logging_level": "INFO",
     "verbose": false,
     "output_folder": "output",
