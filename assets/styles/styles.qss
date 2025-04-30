@@ -317,6 +317,33 @@ QPushButton#PrimaryButton:disabled {
     color: #797979;
 }
 
+/* Output Folder Button */
+QPushButton#OutputFolderButton {
+    background-color: #0078d4;
+    color: #f3f3f3;
+    border: none;
+    min-height: 24px; /* Reduced height for this specific button */
+    max-width: 150px;
+    font-family: "Helvetica", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+}
+
+QPushButton#OutputFolderButton:hover {
+    background-color: #005fb8;
+}
+
+QPushButton#OutputFolderButton:focus {
+    border: 2px solid #0078d4;
+}
+
+QPushButton#OutputFolderButton:disabled {
+    background-color: #585858;
+    color: #797979;
+}
+
 QPushButton#DangerButton, QPushButton#WordEditorButton[role="danger"] {
     background-color: #f1707a;
     color: #f3f3f3;

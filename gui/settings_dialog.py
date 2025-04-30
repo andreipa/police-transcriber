@@ -18,7 +18,6 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
     QVBoxLayout,
     QMessageBox,
@@ -51,6 +50,9 @@ class SettingsDialog(QDialog):
         self.setObjectName("SettingsDialog")  # For stylesheet targeting
         app_logger.debug("Initializing SettingsDialog")
         debug_logger.debug("Starting SettingsDialog setup")
+
+        # Initialize output folder
+        self.output_folder = OUTPUT_FOLDER
 
         # Main layout
         layout = QVBoxLayout()
@@ -130,7 +132,7 @@ class SettingsDialog(QDialog):
         output_layout.setSpacing(8)
         output_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Output folder row
+        # Output folder row (just the button)
         output_form = QFormLayout()
         output_form.setLabelAlignment(Qt.AlignRight)
         output_form.setFormAlignment(Qt.AlignLeft)
@@ -139,20 +141,14 @@ class SettingsDialog(QDialog):
         output_label = QLabel("Pasta de Saída:")
         output_label.setFixedWidth(105)  # Fixed label width for consistent spacing
         output_label.setObjectName("SettingsLabel")
-        self.output_line_edit = QLineEdit(OUTPUT_FOLDER)
-        self.output_line_edit.setReadOnly(True)
-        self.output_line_edit.setObjectName("SettingsLineEdit")
-        self.output_line_edit.setMaximumWidth(300)
-        self.output_line_edit.setToolTip("Pasta onde as transcrições serão salvas.")
-        output_button = QPushButton("Selecionar")
-        output_button.setObjectName("PrimaryButton")
-        output_button.setMaximumWidth(150)
-        output_button.setIcon(QIcon("assets/icons/folder.png"))
-        output_button.clicked.connect(self.select_output_folder)
+        self.output_button = QPushButton("Selecionar")
+        self.output_button.setObjectName("OutputFolderButton")
+        self.output_button.setMaximumWidth(150)
+        self.output_button.setIcon(QIcon("assets/icons/folder.png"))
+        self.output_button.clicked.connect(self.select_output_folder)
         output_row = QHBoxLayout()
         output_row.setSpacing(8)
-        output_row.addWidget(self.output_line_edit)
-        output_row.addWidget(output_button)
+        output_row.addWidget(self.output_button)
         output_form.addRow(output_label, output_row)
 
         output_layout.addLayout(output_form)
@@ -206,17 +202,13 @@ class SettingsDialog(QDialog):
         save_button = QPushButton("Salvar")
         save_button.setObjectName("PrimaryButton")
         save_button.setMinimumWidth(100)
+        save_button.setIcon(QIcon("assets/icons/save.png"))  # Added icon for Save
         save_button.clicked.connect(self.accept)
         cancel_button = QPushButton("Cancelar")
         cancel_button.setObjectName("SettingsButton")
         cancel_button.setMinimumWidth(100)
+        cancel_button.setIcon(QIcon("assets/icons/cancel.png"))  # Added icon for Cancel
         cancel_button.clicked.connect(self.reject)
-        restore_button = QPushButton("Restaurar Padrões")
-        restore_button.setObjectName("SettingsButton")
-        restore_button.setMinimumWidth(100)
-        restore_button.setToolTip("Restaura as configurações para os valores padrão.")
-        restore_button.clicked.connect(self.restore_defaults)
-        button_layout.addWidget(restore_button)
         button_layout.addWidget(save_button)
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
@@ -286,37 +278,13 @@ class SettingsDialog(QDialog):
         folder = QFileDialog.getExistingDirectory(
             self,
             "Selecionar Pasta de Saída",
-            self.output_line_edit.text() or os.path.expanduser("~"),
+            self.output_folder or os.path.expanduser("~"),
             QFileDialog.ShowDirsOnly
         )
         if folder:
-            self.output_line_edit.setText(folder)
+            self.output_folder = folder
             app_logger.info(f"Selected output folder: {folder}")
             debug_logger.debug(f"Output folder selection changed to: {folder}")
-
-    def restore_defaults(self) -> None:
-        """Restore settings to their default values."""
-        try:
-            self.model_combo.setCurrentText("medium")  # Balanced default
-            self.logging_combo.setCurrentText("ERROR")  # Standard for production
-            self.output_line_edit.setText(os.path.expanduser("~/PoliceTranscriber/output"))  # User-specific default
-            self.updates_combo.setCurrentText("Sim")  # Encourage updates
-            self.update_model_description("medium")
-            self.status_label.setText("Configurações restauradas!")
-            self.status_label.setProperty("error", False)
-            self.status_label.style().unpolish(self.status_label)
-            self.status_label.style().polish(self.status_label)
-            app_logger.info("Restored default settings")
-            debug_logger.debug("Default settings restored: model=medium, logging_level=ERROR, "
-                               "output_folder=~/PoliceTranscriber/output, check_for_updates=True")
-        except Exception as e:
-            app_logger.error(f"Failed to restore default settings: {e}")
-            self.status_label.setText("Erro ao restaurar configurações.")
-            self.status_label.setProperty("error", True)
-            self.status_label.style().unpolish(self.status_label)
-            self.status_label.style().polish(self.status_label)
-            debug_logger.debug(f"Failed to restore defaults: {str(e)}")
-            QMessageBox.critical(self, "Erro", "Falha ao restaurar configurações padrão.")
 
     def accept(self) -> None:
         """Save settings when the Salvar button is clicked."""
@@ -325,7 +293,7 @@ class SettingsDialog(QDialog):
             logging_level = self.logging_combo.currentText()
             # Automatically enable debug.log if logging level is DEBUG
             verbose = (logging_level == "DEBUG")
-            output_folder = self.output_line_edit.text()
+            output_folder = self.output_folder
             check_for_updates = (self.updates_combo.currentText() == "Sim")
 
             # Validate output folder
