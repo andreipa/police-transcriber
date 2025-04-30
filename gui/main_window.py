@@ -307,7 +307,7 @@ class MainWindow(QWidget):
 
             # Initialize status bar
             self.status_bar = ClickableStatusBar()
-            self.status_bar.showMessage(f"Modelo carregado: {SELECTED_MODEL} | Última atualização: --")
+            self.status_bar.showMessage(f"Modelo carregado: {SELECTED_MODEL}")
             self.status_bar.clicked.connect(self.handle_status_bar_click)
             self.status_bar.messageChanged.connect(self.update_status_bar_cursor)
             layout.addWidget(self.status_bar)
