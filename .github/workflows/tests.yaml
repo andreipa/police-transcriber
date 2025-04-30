@@ -17,21 +17,29 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # Adjust if your app requires a different version (e.g., 3.9, 3.10)
+          python-version: '3.8'  # Adjust to match your local Python version if needed (e.g., 3.9, 3.10)
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxext-dev libxrender-dev libgl1-mesa-glx libegl1-mesa
+          sudo apt-get install -y libx11-dev libxext-dev libxrender-dev libgl1-mesa-dev libegl1 libqt5x11extras5
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install faster-whisper PyQt5  # Explicitly install key dependencies
+          pip install faster-whisper PyQt5 pytest  # Explicitly install key test dependencies
 
       - name: List directory structure
         run: ls -R  # Debug: Verify file structure
+
+      - name: Debug environment
+        run: |
+          python --version
+          pip list
+          pwd
+          cat requirements.txt
+        # Debug: Show environment details
 
       - name: Run unit tests
         env:
