@@ -11,52 +11,37 @@ from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
-    QComboBox,
-    QDialog,
-    QFileDialog,
-    QFormLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-    QMessageBox,
+    QComboBox, QDialog, QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
+    QPushButton, QVBoxLayout, QMessageBox
 )
 
-from config import (
-    AVAILABLE_MODELS,
-    SELECTED_MODEL,
-    LOGGING_LEVEL,
-    OUTPUT_FOLDER,
-    CHECK_FOR_UPDATES,
-    app_logger,
-    debug_logger,
-    save_config,
-)
+from config import AVAILABLE_MODELS, app_logger, debug_logger, save_config
 
 
 class SettingsDialog(QDialog):
     """Dialog for configuring application settings, including model, logging, output folder, and updates."""
-
     def __init__(self, parent=None) -> None:
-        """Initialize the settings dialog with configuration options.
-
-        Args:
-            parent: The parent widget (e.g., MainWindow).
-        """
+        """Initialize the settings dialog with configuration options."""
         super().__init__(parent)
         self.setWindowTitle("Configurações")
-        self.setFixedSize(500, 450)  # Prevent resizing/maximization
-        self.setObjectName("SettingsDialog")  # For stylesheet targeting
+        self.setFixedSize(500, 450)
+        self.setObjectName("SettingsDialog")
         app_logger.debug("Initializing SettingsDialog")
         debug_logger.debug("Starting SettingsDialog setup")
 
-        # Initialize output folder
-        self.output_folder = OUTPUT_FOLDER
+        # Load configuration directly
+        from config import load_config
+        config = load_config()
+        selected_model = config["selected_model"]
+        logging_level = config["logging_level"]
+        verbose = config["verbose"]
+        self.output_folder = config["output_folder"]
+        check_for_updates = config["check_for_updates"]
+        app_logger.debug(f"Loaded configuration in SettingsDialog: logging_level={logging_level}")
 
         # Main layout
         layout = QVBoxLayout()
-        layout.setSpacing(24)  # Further increased spacing for better separation
+        layout.setSpacing(24)
         layout.setContentsMargins(12, 24, 12, 12)
 
         # Group: Configurações de Transcrição
@@ -66,24 +51,22 @@ class SettingsDialog(QDialog):
         transcription_layout.setSpacing(8)
         transcription_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Model selection row (label, ComboBox, and description)
         model_row = QHBoxLayout()
         model_label = QLabel("Modelo:")
-        model_label.setFixedWidth(80)  # Increased to prevent overlap
+        model_label.setFixedWidth(80)
         model_label.setObjectName("SettingsLabel")
         self.model_combo = QComboBox()
         self.model_combo.addItems(AVAILABLE_MODELS.keys())
-        self.model_combo.setCurrentText(SELECTED_MODEL)
+        self.model_combo.setCurrentText(selected_model)
         self.model_combo.setObjectName("SettingsComboBox")
-        self.model_combo.setFixedWidth(120)  # Reduced to give more space to description
+        self.model_combo.setFixedWidth(120)
         self.model_combo.setToolTip("Selecione o modelo de transcrição a ser usado.")
         model_row.addWidget(model_label)
         model_row.addWidget(self.model_combo)
 
-        # Model description beside ComboBox
-        self.model_description = QLabel(self.get_model_description(SELECTED_MODEL))
+        self.model_description = QLabel(self.get_model_description(selected_model))
         self.model_description.setWordWrap(True)
-        self.model_description.setMaximumWidth(250)  # Limit width to ensure wrapping
+        self.model_description.setMaximumWidth(250)
         self.model_description.setObjectName("SettingsDescription")
         model_row.addWidget(self.model_description)
         self.model_combo.currentTextChanged.connect(self.update_model_description)
@@ -99,24 +82,22 @@ class SettingsDialog(QDialog):
         logging_layout.setSpacing(8)
         logging_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Logging level row (label, ComboBox, and description)
         logging_row = QHBoxLayout()
         logging_label = QLabel("Nível de Log:")
-        logging_label.setFixedWidth(94)  # Increased to prevent overlap
+        logging_label.setFixedWidth(94)
         logging_label.setObjectName("SettingsLabel")
         self.logging_combo = QComboBox()
         self.logging_combo.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
-        self.logging_combo.setCurrentText(LOGGING_LEVEL)
+        self.logging_combo.setCurrentText(logging_level)
         self.logging_combo.setObjectName("SettingsComboBox")
-        self.logging_combo.setFixedWidth(115)  # Reduced to give more space to description
+        self.logging_combo.setFixedWidth(115)
         self.logging_combo.setToolTip("Selecione o nível de log para app.log")
         logging_row.addWidget(logging_label)
         logging_row.addWidget(self.logging_combo)
 
-        # Logging level description beside ComboBox
-        self.logging_description = QLabel(self.get_logging_description(LOGGING_LEVEL))
+        self.logging_description = QLabel(self.get_logging_description(logging_level))
         self.logging_description.setWordWrap(True)
-        self.logging_description.setMaximumWidth(250)  # Limit width to ensure wrapping
+        self.logging_description.setMaximumWidth(250)
         self.logging_description.setObjectName("SettingsDescription")
         logging_row.addWidget(self.logging_description)
         self.logging_combo.currentTextChanged.connect(self.update_logging_description)
@@ -132,14 +113,13 @@ class SettingsDialog(QDialog):
         output_layout.setSpacing(8)
         output_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Output folder row (just the button)
         output_form = QFormLayout()
         output_form.setLabelAlignment(Qt.AlignRight)
         output_form.setFormAlignment(Qt.AlignLeft)
         output_form.setSpacing(8)
 
         output_label = QLabel("Pasta de Saída:")
-        output_label.setFixedWidth(105)  # Fixed label width for consistent spacing
+        output_label.setFixedWidth(105)
         output_label.setObjectName("SettingsLabel")
         self.output_button = QPushButton("Selecionar")
         self.output_button.setObjectName("OutputFolderButton")
@@ -162,20 +142,19 @@ class SettingsDialog(QDialog):
         updates_layout.setSpacing(8)
         updates_layout.setContentsMargins(8, 8, 8, 8)
 
-        # Check for updates row
         updates_form = QFormLayout()
         updates_form.setLabelAlignment(Qt.AlignRight)
         updates_form.setFormAlignment(Qt.AlignLeft)
         updates_form.setSpacing(8)
 
         updates_label = QLabel("Verificar Atualizações:")
-        updates_label.setFixedWidth(150)  # Match the width of other labels
+        updates_label.setFixedWidth(150)
         updates_label.setObjectName("SettingsLabel")
         self.updates_combo = QComboBox()
         self.updates_combo.addItems(["Sim", "Não"])
-        self.updates_combo.setCurrentText("Sim" if CHECK_FOR_UPDATES else "Não")
+        self.updates_combo.setCurrentText("Sim" if check_for_updates else "Não")
         self.updates_combo.setObjectName("SettingsComboBox")
-        self.updates_combo.setFixedWidth(115)  # Match the width of other ComboBoxes
+        self.updates_combo.setFixedWidth(115)
         self.updates_combo.setToolTip("Verifica automaticamente se há novas versões do aplicativo ao iniciar.")
         updates_row = QHBoxLayout()
         updates_row.addWidget(self.updates_combo)
@@ -202,12 +181,12 @@ class SettingsDialog(QDialog):
         save_button = QPushButton("Salvar")
         save_button.setObjectName("PrimaryButton")
         save_button.setMinimumWidth(100)
-        save_button.setIcon(QIcon("assets/icons/save.png"))  # Added icon for Save
+        save_button.setIcon(QIcon("assets/icons/save.png"))
         save_button.clicked.connect(self.accept)
         cancel_button = QPushButton("Cancelar")
         cancel_button.setObjectName("SettingsButton")
         cancel_button.setMinimumWidth(100)
-        cancel_button.setIcon(QIcon("assets/icons/cancel.png"))  # Added icon for Cancel
+        cancel_button.setIcon(QIcon("assets/icons/cancel.png"))
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(save_button)
         button_layout.addWidget(cancel_button)
@@ -219,14 +198,7 @@ class SettingsDialog(QDialog):
         debug_logger.debug("SettingsDialog setup finished")
 
     def get_model_description(self, model: str) -> str:
-        """Get a description of the selected model.
-
-        Args:
-            model: The model name (e.g., 'base', 'small', 'medium', 'large-v2').
-
-        Returns:
-            A string describing the model's characteristics.
-        """
+        """Get a description of the selected model."""
         descriptions = {
             "base": "145 MB - Baixa precisão, rápido, ideal para testes.",
             "small": "484 MB - Precisão moderada, bom equilíbrio.",
@@ -236,24 +208,13 @@ class SettingsDialog(QDialog):
         return descriptions.get(model, "Selecione um modelo para ver a descrição.")
 
     def update_model_description(self, model: str) -> None:
-        """Update the model description label when the selected model changes.
-
-        Args:
-            model: The newly selected model name.
-        """
+        """Update the model description label when the selected model changes."""
         self.model_description.setText(self.get_model_description(model))
         app_logger.debug(f"Updated model description: {model}")
         debug_logger.debug(f"Model description changed to: {model}")
 
     def get_logging_description(self, level: str) -> str:
-        """Get a description of the selected logging level.
-
-        Args:
-            level: The logging level (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL').
-
-        Returns:
-            A string describing the logging level's characteristics.
-        """
+        """Get a description of the selected logging level."""
         descriptions = {
             "DEBUG": "Todos os detalhes (desenvolvimento).",
             "INFO": "Eventos principais (monitoramento).",
@@ -264,11 +225,7 @@ class SettingsDialog(QDialog):
         return descriptions.get(level, "Selecione um nível de log para ver a descrição.")
 
     def update_logging_description(self, level: str) -> None:
-        """Update the logging description label when the selected logging level changes.
-
-        Args:
-            level: The newly selected logging level.
-        """
+        """Update the logging description label when the selected logging level changes."""
         self.logging_description.setText(self.get_logging_description(level))
         app_logger.debug(f"Updated logging description: {level}")
         debug_logger.debug(f"Logging description changed to: {level}")
@@ -291,12 +248,10 @@ class SettingsDialog(QDialog):
         try:
             selected_model = self.model_combo.currentText()
             logging_level = self.logging_combo.currentText()
-            # Automatically enable debug.log if logging level is DEBUG
             verbose = (logging_level == "DEBUG")
             output_folder = self.output_folder
             check_for_updates = (self.updates_combo.currentText() == "Sim")
 
-            # Validate output folder
             if not os.path.isdir(output_folder):
                 app_logger.warning(f"Invalid output folder: {output_folder}. Attempting to create.")
                 Path(output_folder).mkdir(parents=True, exist_ok=True)

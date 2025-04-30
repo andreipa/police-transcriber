@@ -203,12 +203,12 @@ def save_config(
         "check_for_updates": check_for_updates,
     }
     try:
-        abs_path = os.path.abspath(CONFIG_FILE)  # Get absolute path of config.json
-        app_logger.debug(f"Saving config to: {abs_path}")  # Log the path
+        abs_path = os.path.abspath(CONFIG_FILE)
+        app_logger.debug(f"Saving config to: {abs_path}")
         with open(CONFIG_FILE, "w", encoding="utf-8") as file:
             json.dump(config, file, indent=4)
         update_logging(logging_level, verbose)
-        app_logger.debug(f"Successfully saved config to: {abs_path}")  # Log success
+        app_logger.debug(f"Successfully saved config to: {abs_path}")
     except Exception as e:
         app_logger.error(f"Failed to save config to {CONFIG_FILE}: {e}")
 
