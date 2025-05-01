@@ -22,7 +22,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxext-dev libxrender-dev libgl1-mesa-dev libegl1 libqt5x11extras5 ffmpeg xvfb libxcb1 libxcb-xfixes0
+          sudo apt-get install -y libx11-dev libxext-dev libxrender-dev libgl1-mesa-dev libegl1 libqt5x11extras5 ffmpeg xvfb libxcb1 libxcb-xfixes0 gdb
 
       - name: Install Python dependencies
         run: |
@@ -50,7 +50,9 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: true
           QT_LOGGING_RULES: "qt5ct.debug=false"
-          DISPLAY: ":99"  # Set virtual display for xvfb
+          DISPLAY: ":99"
+          PYTHONUNBUFFERED: "1"  # Ensure test output is not buffered
         run: |
+          ulimit -s 65536  # Increase stack size to prevent segfault
           xvfb-run --server-args="-screen 0 1024x768x24" python -m unittest discover -s tests -v
-          if [ -f core ]; then ls -l core; fi  # Check for core dump
+          if [ -f core ]; then ls -l core; gdb python core -batch -ex "bt"; fi  # Analyze core dump
