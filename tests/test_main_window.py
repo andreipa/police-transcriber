@@ -163,11 +163,15 @@ class TestMainWindow(unittest.TestCase):
 
         event = MagicMock()
         event.button.return_value = Qt.LeftButton
-        status_bar.mousePressEvent(event)
+        try:
+            status_bar.mousePressEvent(event)
+        except Exception as e:
+            self.fail(f"mousePressEvent raised unexpected exception: {e}")
 
         status_bar.clicked.emit.assert_called_once()
         event.button.assert_called_once()
         status_bar.clicked.reset_mock()
+
     @patch("gui.main_window.is_model_downloaded")
     def test_main_window_update_transcription_button_state(self, mock_is_downloaded):
         """Test MainWindow.update_transcription_button_state updates button state."""
@@ -507,7 +511,6 @@ class TestMainWindow(unittest.TestCase):
         mock_open_file.assert_called_once()
         mock_dialog.assert_called_once()
         mock_dialog.return_value.exec_.assert_called_once()
-
 
 if __name__ == "__main__":
     unittest.main()
