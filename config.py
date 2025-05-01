@@ -91,16 +91,17 @@ debug_logger.addHandler(debug_handler)
 debug_logger.setLevel(logging.DEBUG)  # Debug logger always logs at DEBUG level
 
 
-def is_model_downloaded(model: str) -> bool:
+def is_model_downloaded(model: str, base_path: str = "models") -> bool:
     """Check if all required model files are downloaded.
 
     Args:
         model: The model name to check.
+        base_path: Base directory for model files (default: 'models').
 
     Returns:
         True if all model files exist, False otherwise.
     """
-    model_path = os.path.join("models", model)
+    model_path = os.path.join(base_path, model)
     required_files = AVAILABLE_MODELS[model]["files"]
     return all(os.path.exists(os.path.join(model_path, file)) for file in required_files)
 
