@@ -22,7 +22,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxext-dev libxrender-dev libgl1-mesa-dev libegl1 libqt5x11extras5 ffmpeg xvfb
+          sudo apt-get install -y libx11-dev libxext-dev libxrender-dev libgl1-mesa-dev libegl1 libqt5x11extras5 ffmpeg xvfb libxcb1 libxcb-xfixes0
 
       - name: Install Python dependencies
         run: |
@@ -43,11 +43,14 @@ jobs:
           python -c "import av; print('av version:', av.__version__)"
           which xvfb-run
           free -m  # Debug: Show memory usage
+          ulimit -c unlimited  # Enable core dumps
         # Debug: Show environment details
 
       - name: Run unit tests
         env:
           ACTIONS_STEP_DEBUG: true
-          QT_LOGGING_RULES: "qt5ct.debug=false"  # Suppress Qt warnings
+          QT_LOGGING_RULES: "qt5ct.debug=false"
+          DISPLAY: ":99"  # Set virtual display for xvfb
         run: |
           xvfb-run --server-args="-screen 0 1024x768x24" python -m unittest discover -s tests -v
+          if [ -f core ]; then ls -l core; fi  # Check for core dump

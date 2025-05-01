@@ -7,6 +7,7 @@ import unittest
 from datetime import datetime
 from unittest.mock import patch, MagicMock, mock_open
 
+import requests
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
@@ -24,8 +25,12 @@ from gui.main_window import (
 class TestMainWindow(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Set up the QApplication instance required for PyQt tests."""
         cls.app = QApplication([])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+        cls.app = None
 
     def setUp(self):
         """Set up the test environment."""
@@ -143,9 +148,13 @@ class TestMainWindow(unittest.TestCase):
         checker = BackgroundAppUpdateChecker()
         checker.update_available = MagicMock()
 
-        checker.run()
+        try:
+            checker.run()
+        except requests.RequestException:
+            self.fail("RequestException was not handled by BackgroundAppUpdateChecker")
 
         checker.update_available.emit.assert_not_called()
+        mock_get.reset_mock()
 
     def test_clickable_status_bar_mouse_press(self):
         """Test ClickableStatusBar emits clicked signal on left mouse press."""
@@ -158,7 +167,7 @@ class TestMainWindow(unittest.TestCase):
 
         status_bar.clicked.emit.assert_called_once()
         event.button.assert_called_once()
-
+        status_bar.clicked.reset_mock()
     @patch("gui.main_window.is_model_downloaded")
     def test_main_window_update_transcription_button_state(self, mock_is_downloaded):
         """Test MainWindow.update_transcription_button_state updates button state."""
