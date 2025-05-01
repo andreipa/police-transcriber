@@ -41,7 +41,7 @@ jobs:
           cat requirements.txt
           ffmpeg -version
           python -c "import av; print('av version:', av.__version__)"
-          xvfb-run --version
+          which xvfb-run  # Verify xvfb installation
         # Debug: Show environment details
 
       - name: Run unit tests
