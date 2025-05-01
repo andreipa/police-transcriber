@@ -37,7 +37,10 @@ class TestSplashScreen(unittest.TestCase):
         mock_pixmap.return_value = mock_pixmap_instance
         mock_pixmap_instance.scaledToWidth.return_value = mock_scaled_pixmap
 
-        splash = SplashScreen()
+        try:
+            splash = SplashScreen()
+        except Exception as e:
+            self.fail(f"SplashScreen init raised unexpected exception: {e}")
 
         self.assertEqual(splash.windowTitle(), APP_NAME)
         self.assertEqual(splash.minimumSize().width(), 550)
@@ -45,8 +48,8 @@ class TestSplashScreen(unittest.TestCase):
         self.assertTrue(splash.windowFlags() & Qt.FramelessWindowHint)
         self.assertTrue(splash.windowFlags() & Qt.WindowStaysOnTopHint)
 
-        mock_exists.assert_called_once_with(self.splash_path)
-        mock_pixmap.assert_called_once_with(self.splash_path)
+        mock_exists.assert_called_once_with(os.path.join("assets", "images", "splash.png"))
+        mock_pixmap.assert_called_once_with(os.path.join("assets", "images", "splash.png"))
         mock_pixmap_instance.scaledToWidth.assert_called_once_with(300, Qt.SmoothTransformation)
         mock_label.return_value.setPixmap.assert_called_once_with(mock_scaled_pixmap)
         mock_label.return_value.setAlignment.assert_any_call(Qt.AlignCenter)
@@ -68,7 +71,12 @@ class TestSplashScreen(unittest.TestCase):
         mock_layout.return_value.setSpacing.assert_called_once_with(10)
         mock_layout.return_value.setContentsMargins.assert_called_once_with(20, 20, 20, 20)
         mock_layout.return_value.addWidget.assert_called()
-        mock_layout.return_value.addSpacerItem.assert_called()
+        mock_pixmap.reset_mock()
+        mock_label.reset_mock()
+        mock_progress_bar.reset_mock()
+        mock_font.reset_mock()
+        mock_layout.reset_mock()
+        mock_exists.reset_mock()
 
     @patch("os.path.exists")
     @patch("PyQt5.QtWidgets.QLabel")

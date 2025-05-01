@@ -62,10 +62,12 @@ python main.py
 ├── config.json
 ├── config.py
 ├── core/
+├── data/
 ├── gui/
 ├── logs/
 ├── models/
 ├── output/
+├── tests/
 ├── requirements.txt
 ├── main.py
 └── README.md
