@@ -14,7 +14,7 @@ from typing import Dict, Any
 APP_NAME = "Police Transcriber"
 """Name of the application."""
 
-VERSION = "v1.0.0-beta"
+VERSION = "v1.0.1-beta"
 """Current version of the application."""
 
 SLOGAN_PT = "Detecção Automática de Conversas Ilícitas com IA"
@@ -90,7 +90,6 @@ debug_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(me
 debug_logger.addHandler(debug_handler)
 debug_logger.setLevel(logging.DEBUG)  # Debug logger always logs at DEBUG level
 
-
 def is_model_downloaded(model: str, base_path: str = "models") -> bool:
     """Check if all required model files are downloaded.
 
@@ -103,6 +102,7 @@ def is_model_downloaded(model: str, base_path: str = "models") -> bool:
     """
     model_path = os.path.join(base_path, model)
     required_files = AVAILABLE_MODELS[model]["files"]
+    app_logger.debug(f"Checking model files in: {model_path}")
     return all(os.path.exists(os.path.join(model_path, file)) for file in required_files)
 
 def load_config() -> Dict[str, Any]:
@@ -114,22 +114,25 @@ def load_config() -> Dict[str, Any]:
     Note:
         Must be called before using app_logger or debug_logger to ensure proper configuration.
     """
-    if not os.path.exists(CONFIG_FILE):
+    abs_config_path = os.path.abspath(CONFIG_FILE)
+    app_logger.debug(f"Attempting to load config from: {abs_config_path}")
+    if not os.path.exists(abs_config_path):
+        app_logger.debug("Config file not found, creating with defaults")
         save_config(**DEFAULT_CONFIG)
-        app_logger.info(f"Created default configuration file: {CONFIG_FILE}")
+        app_logger.info(f"Created default configuration file: {abs_config_path}")
 
     try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as file:
+        with open(abs_config_path, "r", encoding="utf-8") as file:
             config = json.load(file)
-
+        app_logger.debug(f"Loaded config: {config}")
         # Validate configuration
         config = validate_config(config)
         update_logging(config["logging_level"], config["verbose"])
         return config
     except Exception as e:
         app_logger.error(f"Failed to load config: {e}")
+        app_logger.debug("Returning default config due to error")
         return DEFAULT_CONFIG
-
 
 def validate_config(config: Dict[str, Any]) -> Dict[str, Any]:
     """Validate the configuration and return a corrected version if necessary.
@@ -178,7 +181,6 @@ def validate_config(config: Dict[str, Any]) -> Dict[str, Any]:
         validated_config["check_for_updates"] = DEFAULT_CONFIG["check_for_updates"]
 
     return validated_config
-
 
 def save_config(
         selected_model: str = DEFAULT_CONFIG["selected_model"],
@@ -235,9 +237,14 @@ def update_logging(logging_level: str, verbose: bool) -> None:
     elif not verbose and debug_handler in debug_logger.handlers:
         debug_logger.removeHandler(debug_handler)
 
-
 # Load configuration
-config = load_config()
+try:
+    config = load_config()
+    app_logger.debug(f"Configuration loaded successfully: {config}")
+except Exception as e:
+    app_logger.error(f"Critical error loading config: {e}")
+    config = DEFAULT_CONFIG
+
 SELECTED_MODEL = config["selected_model"]
 """Name of the currently selected Whisper model."""
 
