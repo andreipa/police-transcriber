@@ -6,6 +6,8 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 
+import requests
+
 from config import MODEL_FILES, LOCAL_MODEL_PATH, MODEL_DOWNLOAD_BASE_URL, SELECTED_MODEL
 from core.model_downloader import (
     is_model_fully_downloaded,
@@ -107,18 +109,22 @@ class TestModelDownloader(unittest.TestCase):
         """Test download_model_file handles request exceptions."""
         mock_get.side_effect = requests.RequestException("Network error")
 
-        success, downloaded_total = download_model_file(
-            file_name=self.test_file,
-            url=self.test_url,
-            dest_path=self.test_dest_path,
-            file_size=self.file_size,
-            downloaded_total=0,
-            total_size=self.total_size
-        )
+        try:
+            success, downloaded_total = download_model_file(
+                file_name=self.test_file,
+                url=self.test_url,
+                dest_path=self.test_dest_path,
+                file_size=self.file_size,
+                downloaded_total=0,
+                total_size=self.total_size
+            )
+        except requests.RequestException:
+            self.fail("RequestException was not handled by download_model_file")
 
         self.assertFalse(success)
         self.assertEqual(downloaded_total, 0)
         mock_get.assert_called_once_with(self.test_url, headers={}, stream=True, timeout=30)
+        mock_get.reset_mock()  # Clean up mock
 
     @patch("os.makedirs")
     @patch("os.path.exists")
@@ -138,7 +144,8 @@ class TestModelDownloader(unittest.TestCase):
     @patch("core.model_downloader.download_model_file")
     def test_download_model_download_success(self, mock_download_file, mock_head, mock_exists, mock_makedirs):
         """Test download_model downloads missing files successfully."""
-        mock_exists.side_effect = [False, True]  # First file missing, others exist
+        # Ensure side_effect covers all MODEL_FILES checks
+        mock_exists.side_effect = [False] + [True] * (len(self.model_files) - 1)
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.headers = {"content-length": "500"}
@@ -153,8 +160,21 @@ class TestModelDownloader(unittest.TestCase):
         mock_head.assert_called_once_with(
             f"{self.download_url}/{self.model_files[0]}", headers={}, allow_redirects=True, timeout=10
         )
-        mock_download_file.assert_called_once()
+        mock_download_file.assert_called_once_with(
+            file_name=self.model_files[0],
+            url=f"{self.download_url}/{self.model_files[0]}",
+            dest_path=os.path.join(self.local_model_path, self.model_files[0]),
+            file_size=500,
+            downloaded_total=0,
+            total_size=500,
+            progress_callback=progress_callback
+        )
         progress_callback.assert_called()
+        # Reset mocks to prevent interference
+        mock_head.reset_mock()
+        mock_download_file.reset_mock()
+        mock_exists.reset_mock()
+        mock_makedirs.reset_mock()
 
     @patch("os.makedirs")
     @patch("os.path.exists")
