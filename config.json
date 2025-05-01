@@ -1,7 +1,7 @@
 {
-    "selected_model": "large-v2",
-    "logging_level": "INFO",
-    "verbose": false,
-    "output_folder": "output",
+    "selected_model": "base",
+    "logging_level": "DEBUG",
+    "verbose": true,
+    "output_folder": "/private/var/folders/6m/8g81brm54rq8r9l0f3x2jmlr0000gn/T/pytest-of-andreiandrade/pytest-1/test_save_config_success0/output",
     "check_for_updates": true
 }
