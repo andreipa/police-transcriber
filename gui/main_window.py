@@ -21,8 +21,7 @@ from PyQt5.QtWidgets import (
 from packaging import version
 
 from config import (
-    APP_NAME, GITHUB_RELEASES_URL, LOG_FOLDER, VERSION,
-    is_model_downloaded, app_logger, debug_logger
+    APP_NAME, GITHUB_RELEASES_URL, LOG_FOLDER, VERSION, is_model_downloaded, app_logger, debug_logger
 )
 from core.transcriber import transcribe_audio
 from gui.settings_dialog import SettingsDialog
