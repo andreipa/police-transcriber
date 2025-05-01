@@ -23,3 +23,7 @@ output/
 models/*
 data/*
 logs/*
+
+# build
+build
+dist

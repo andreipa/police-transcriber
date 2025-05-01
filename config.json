@@ -1,6 +1,6 @@
 {
     "selected_model": "large-v2",
-    "logging_level": "DEBUG",
+    "logging_level": "INFO",
     "verbose": true,
     "output_folder": "output",
     "check_for_updates": true
