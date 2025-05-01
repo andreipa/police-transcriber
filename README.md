@@ -89,4 +89,4 @@ additional support, check out [GitHub Discussions](https://github.com/andreipa/p
 
 ## 🆙 Version
 
-Current version: **v1.0.0-beta**
+Current version: **v1.0.1-beta**
