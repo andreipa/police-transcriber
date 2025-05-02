@@ -19,6 +19,7 @@ from config import (
     VERBOSE,
     LOG_FOLDER,
     OUTPUT_FOLDER,
+    SELECTED_MODEL, CHECK_FOR_UPDATES,
     load_config,
     save_config,
 )
@@ -70,10 +71,10 @@ def qt_message_handler(msg_type: QtMsgType, context: object, msg: str) -> None:
 
 
 def prompt_output_folder(parent) -> str:
-    """Prompt the user to select an output folder on first run.
+    """Prompt the user to select an output folder on the first run.
 
     Args:
-        parent: The parent widget for the file dialog.
+        parent: The parent widget for the file dialogue.
 
     Returns:
         The selected folder path or the default OUTPUT_FOLDER if cancelled.
@@ -102,7 +103,7 @@ def load_stylesheet(app: QApplication) -> None:
     try:
         # Get the directory of the current script or executable
         if getattr(sys, 'frozen', False):
-            # Running as a packaged executable (e.g., PyInstaller)
+            # Running as a packaged executable (e.g. PyInstaller)
             base_path = Path(sys.executable).parent
         else:
             # Running from source
@@ -204,15 +205,15 @@ def main() -> None:
                 splash.close()
                 debug_logger.debug("Splash screen closed after error")
                 sys.exit(1)
-        except Exception as e:
-            app_logger.error(f"Error in continue_after_model: {e}", exc_info=True)
+        except Exception as error:
+            app_logger.error(f"Error in continue_after_model: {error}", exc_info=True)
             debug_logger.debug(f"Exception in continue_after_model: {traceback.format_exc()}")
             splash.close()
             debug_logger.debug("Splash screen closed after exception")
             sys.exit(1)
 
     def run_model_download() -> None:
-        """Trigger model download and proceed to main window."""
+        """Trigger model download and proceed to the main window."""
         debug_logger.debug("Starting model download")
         success = ensure_model_available(
             on_status=splash.setMessage,
