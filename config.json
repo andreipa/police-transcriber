@@ -1,7 +1,7 @@
 {
     "selected_model": "large-v2",
-    "logging_level": "INFO",
-    "verbose": true,
+    "logging_level": "ERROR",
+    "verbose": false,
     "output_folder": "output",
     "check_for_updates": true
 }

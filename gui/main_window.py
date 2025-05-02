@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
 from packaging import version
 
 from config import (
-    APP_NAME, GITHUB_RELEASES_URL, LOG_FOLDER, VERSION,
+    APP_NAME, GITHUB_RELEASES_URL, LOG_FOLDER, VERSION, SELECTED_MODEL, CHECK_FOR_UPDATES, OUTPUT_FOLDER,
     is_model_downloaded, app_logger, debug_logger
 )
 from core.transcriber import transcribe_audio
@@ -154,6 +154,9 @@ class MainWindow(QWidget):
             open_folder_action = QAction(QIcon("assets/icons/library_music.png"), "Selecionar Pasta...", self)
             open_folder_action.triggered.connect(self.select_folder)
             file_menu.addAction(open_folder_action)
+            open_transcription_folder_action = QAction(QIcon("assets/icons/folder.png"), "Abrir Pasta de Transcrições", self)
+            open_transcription_folder_action.triggered.connect(self.open_transcription_folder)
+            file_menu.addAction(open_transcription_folder_action)
             file_menu.addSeparator()
             exit_action = QAction(QIcon("assets/icons/exit.png"), "Sair", self)
             exit_action.triggered.connect(self.close)
@@ -215,7 +218,7 @@ class MainWindow(QWidget):
 
             layout.addLayout(button_layout)
 
-            # Initialize file list with context menu
+            # Initialize a file list with a context menu
             self.file_list = QListWidget()
             self.file_list.setContextMenuPolicy(Qt.CustomContextMenu)
             self.file_list.customContextMenuRequested.connect(self.show_context_menu)
@@ -341,7 +344,7 @@ class MainWindow(QWidget):
                 debug_logger.debug(f"Error opening release URL: {str(e)}")
 
     def select_file(self) -> None:
-        """Open a file dialog to select an MP3 file and update the transcription queue."""
+        """Open a file dialogue to select an MP3 file and update the transcription queue."""
         path, _ = QFileDialog.getOpenFileName(self, "Selecionar Arquivo MP3", "", "Audio Files (*.mp3)")
         if path:
             self.file_list.clear()
@@ -356,7 +359,7 @@ class MainWindow(QWidget):
             debug_logger.debug(f"Added file to queue: {path}")
 
     def select_folder(self) -> None:
-        """Open a folder dialog to select a directory and add MP3 files to the transcription queue."""
+        """Open a folder dialogue to select a directory and add MP3 files to the transcription queue."""
         folder = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
         if folder:
             self.file_list.clear()
@@ -401,7 +404,7 @@ class MainWindow(QWidget):
             self.update_transcription_button_state()
 
     def open_word_editor(self) -> None:
-        """Open a dialog for editing the list of sensitive words."""
+        """Open a dialogue for editing the list of sensitive words."""
         try:
             dialog = WordEditorDialog(self)
             dialog.exec_()
@@ -486,10 +489,10 @@ class MainWindow(QWidget):
             QMessageBox.critical(self, "Erro", "Não foi possível abrir o arquivo de debug log.")
 
     def open_settings_dialog(self) -> None:
-        """Open the settings dialog to configure application options."""
+        """Open the settings dialogue to configure application options."""
         try:
             from config import load_config
-            # Reload configuration before opening dialog
+            # Reload configuration before opening dialogue
             config = load_config()
             global SELECTED_MODEL, OUTPUT_FOLDER, LOGGING_LEVEL, VERBOSE, CHECK_FOR_UPDATES
             SELECTED_MODEL = config["selected_model"]
@@ -594,10 +597,10 @@ class MainWindow(QWidget):
         self.status_bar.showMessage("Transcrição concluída com sucesso")
         self.current_file_label.setText("Arquivo atual: Nenhum")
         self.current_file = None
-        self.show_summary_panel(file_paths)
+        self.show_summary_panel(file_paths, message)
         app_logger.info("Transcription completed successfully")
         debug_logger.debug(f"Transcription finished, processed {len(file_paths)} files")
-        QMessageBox.information(self, "Sucesso", message)
+        # QMessageBox.information(self, "Sucesso", message)
 
     def transcription_failed(self, file_path: str) -> None:
         """Handle transcription failure and display an error message."""
@@ -623,7 +626,7 @@ class MainWindow(QWidget):
             debug_logger.debug(f"Help link error: {str(e)}")
 
     def show_about(self) -> None:
-        """Display an About dialog with the application logo, name, version, and developer info."""
+        """Display About dialogue with the application logo, name, version, and developer info."""
         class AboutDialog(QDialog):
             def __init__(self, parent=None):
                 super().__init__(parent)
@@ -664,8 +667,8 @@ class MainWindow(QWidget):
         app_logger.info("Showed About dialog")
         debug_logger.debug("About dialog displayed")
 
-    def show_summary_panel(self, file_paths: list[str]) -> None:
-        """Display a dialog summarizing the transcription results for processed files."""
+    def show_summary_panel(self, file_paths: list[str], message: str = "") -> None:
+        """Display a dialogue summarising the transcription results for processed files."""
         try:
             dialog = QDialog(self)
             dialog.setWindowTitle("Resumo da Transcrição")
@@ -673,6 +676,10 @@ class MainWindow(QWidget):
             dialog.setObjectName("SummaryDialog")
             layout = QVBoxLayout(dialog)
             layout.setSpacing(8)
+
+            if message:
+                layout.addWidget(QLabel(f"<b>{message}</b>"))
+
             layout.addWidget(QLabel(f"<b>Resumo de {len(file_paths)} arquivo(s) transcrito(s):</b>"))
             for file_path in file_paths:
                 txt_path = Path(OUTPUT_FOLDER) / (Path(file_path).stem + "-" + datetime.now().strftime("%d-%m-%Y") + ".txt")
@@ -697,6 +704,14 @@ class MainWindow(QWidget):
                 file_layout.addWidget(open_button)
                 layout.addLayout(file_layout)
             button_box = QDialogButtonBox(QDialogButtonBox.Ok)
+            # Add Open Folder button
+            folder_button = QPushButton("Abrir Pasta de Transcrições")
+            folder_button.setObjectName("SecondaryButton")
+            folder_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(OUTPUT_FOLDER).resolve()))))
+            layout.addWidget(folder_button)
+
+            # OK button
+            button_box = QDialogButtonBox(QDialogButtonBox.Ok)
             button_box.setObjectName("SummaryButtonBox")
             button_box.accepted.connect(dialog.accept)
             layout.addWidget(button_box)
@@ -714,3 +729,20 @@ class MainWindow(QWidget):
         app_logger.info("Closing application after settings save")
         debug_logger.debug("Application closing triggered from settings dialog")
         QApplication.quit()
+
+    def open_transcription_folder(self) -> None:
+        """Open the folder where all transcriptions are stored."""
+        try:
+            folder_path = Path(OUTPUT_FOLDER).resolve()
+            if folder_path.exists():
+                QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder_path)))
+                app_logger.info(f"Opened transcription folder: {folder_path}")
+                debug_logger.debug(f"Transcription folder opened: {folder_path}")
+            else:
+                QMessageBox.warning(self, "Aviso", "A pasta de transcrições não existe.")
+                app_logger.warning("Tried to open non-existent transcription folder")
+                debug_logger.debug("Transcription folder not found")
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", "Erro ao abrir a pasta de transcrições.")
+            app_logger.error(f"Failed to open transcription folder: {e}")
+            debug_logger.debug(f"Transcription folder open error: {str(e)}")

@@ -1,6 +1,6 @@
 # Police Transcriber
 
-[![Version](https://img.shields.io/badge/version-v1.0.0--beta-blue)](https://github.com/andreipa/police-transcriber/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.3-blue)](https://github.com/andreipa/police-transcriber/releases)
 [![Run Unit Tests](https://github.com/andreipa/police-transcriber/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/andreipa/police-transcriber/actions/workflows/tests.yaml)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/andreipa/police-transcriber/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-yellow)](https://www.python.org/downloads/)
@@ -89,4 +89,4 @@ additional support, check out [GitHub Discussions](https://github.com/andreipa/p
 
 ## 🆙 Version
 
-Current version: **v1.0.1-beta**
+Current version: **v1.0.3**

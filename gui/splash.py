@@ -10,7 +10,7 @@ from PyQt5.QtCore import QCoreApplication, QEventLoop, Qt
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import QLabel, QProgressBar, QSpacerItem, QSizePolicy, QVBoxLayout, QWidget
 
-from config import APP_NAME, SLOGAN_EN, VERSION, app_logger, debug_logger
+from config import APP_NAME, SLOGAN_PT, VERSION, app_logger, debug_logger
 
 
 class SplashScreen(QWidget):
@@ -54,7 +54,7 @@ class SplashScreen(QWidget):
         app_name_label.setObjectName("SplashAppName")
 
         # Slogan label
-        slogan_label = QLabel(SLOGAN_EN)
+        slogan_label = QLabel(SLOGAN_PT)
         slogan_label.setFont(QFont("Arial", 15))
         slogan_label.setAlignment(Qt.AlignCenter)
         slogan_label.setObjectName("SplashSlogan")

@@ -52,7 +52,7 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: |
           ulimit -s 65536
-          xvfb-run --server-args="-screen 0 1024x768x24" pytest tests/test_config.py --cov=./ --cov-report=json --cov-report=term -v
+          xvfb-run --server-args="-screen 0 1024x768x24" pytest tests --cov=./ --cov-report=json --cov-report=term -v
           mv coverage.json coverage-summary.json
           if [ -f core ]; then ls -l core; gdb python core -batch -ex "bt"; fi
 
