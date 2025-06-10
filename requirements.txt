@@ -17,7 +17,7 @@ onnxruntime==1.21.1
 packaging==24.2
 protobuf==6.30.2
 PyYAML==6.0.2
-requests==2.32.3
+requests==2.32.4
 sympy==1.13.3
 tokenizers==0.21.1
 tqdm==4.67.1
